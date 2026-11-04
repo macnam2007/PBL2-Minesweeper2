@@ -1,0 +1,6 @@
+# SFML & C++ build files
+*.o
+*.exe
+*.out
+build/
+.vscode/

@@ -1,0 +1,362 @@
+    
+
+            PHÂN TÍCH THIẾT KẾ - GAME DÒ MÌN
+
+
+
+1. TỔNG QUAN----------------------------------------------------------------------------------------------------------------------
+
+    - Game dò mìn (Minesweeper) gồm 4 bản đồ với luật chơi khác nhau: Basic, Desert, Jungle, Bee's Hive.
+Mỗi bản đồ có các mức độ khó Easy, Normal, Hard, Explore - riêng Bee's Hivekhông có Explore.
+
+    - Nguyên tắc thiết kế cốt lõi: bàn chơi (trừ Explore) luôn được sinh sao cho giải được bằng suy luận thuần,
+không cần đoán mò. Explore là chế độ khám phá vô hạn theo chunk, không có khái niệm "thắng" mà tính điểm theo độ chính xác
+cắm cờ.
+
+
+
+2. DỮ LIỆU ĐẦU VÀO----------------------------------------------------------------------------------------------------------------------
+
+2.1 Hình ảnh
+    1. Đọc file .txt liệt kê tên ảnh (tên ảnh có dạng id.png).
+    2. Load ảnh theo tên đọc được, gán id làm khóa tra cứu.
+    3. Vị trí hiển thị từng ảnh được định nghĩa cứng trong code theo id.
+
+2.2 Âm thanh
+    Quy trình tương tự mục 2.1
+
+2.3 Font chữ
+    Chỉ dùng 1 font duy nhất, load trực tiếp.
+
+
+3. THÀNH PHẦN UI DÙNG CHUNG
+
+3.1 Nút bấm
+    - Vị trí cố định trong code, ảnh lấy theo id.
+    - Mỗi nút có 3 trạng thái ảnh: bình thường | hover | pressed.
+    - Click (nhấn và thả cùng 1 nút) sẽ thực thi hành động gắn với nút đó.
+
+3.2 Chữ      
+    Hiển thị tại vị trí cố định trong code.
+
+3.3 HUD trong màn chơi  
+    - Số mìn còn lại = tổng số mìn trừ số ô đang cắm cờ (không áp dụng cho
+    Explore, xem 3.3.1).  
+    - Đồng hồ đếm thời gian (quy tắc dừng nêu ở mục 9.3).    
+    - Mạng còn lại - chỉ hiển thị ở Bee's Hive, tối đa 2 mạng.
+    - Nút tạm dừng (Pause) sẽ dừng game và che màn game lại trành gian lận thời gian.
+    hiện nút Thoát (về trang Home) và Continue (tiếp tục màn chơi).
+
+3.3.1 HUD riêng cho Explore
+    - Số cờ đặt đúng (trùng ô có mìn thật).
+    - Số cờ đặt sai (cắm vào ô không có mìn).
+    - Điểm số hiện tại = số cờ đúng trừ số cờ sai (điểm số >= 0).
+    - Không hiển thị "số mìn còn lại" vì bản đồ vô hạn không có tổng số mìn
+      cố định.
+
+
+4. SƠ ĐỒ LUỒNG MÀN HÌNH----------------------------------------------------------------------------------------------------------------------
+
+    Home --[Play]--> Select Map --[chọn map]--> Select Difficulty --[Start]--> GAME
+      ^                    |                          |                          |
+      |<-----[Back]--------+<--------[Back]-----------+                          |
+      |                                                                          |
+      |<--------------------------[Back] (từ màn hình tạm dựng)------------------|
+      |                                                                          |
+      |<--------------------------[Home] (tu man hinh ket thuc)------------------+
+
+4.1 Home
+    Music    : Bật|tắt nhạc nền
+    Voice    : Bật|tắt âm thanh hiệu ứng
+    Play     : Chuyển sang Select Map
+    Exit     : Mở hộp thoại xác nhận thoát - "Thoát" sẽ đóng game, "Hủy" sẽ
+                đóng hộp thoại và ở lại Home
+
+    Cài đặt Music|Voice không được lưu lại giữa các lần mở game - mỗi lần mở
+    game sẽ về mặc định.
+
+4.2 Select Map
+    Back                                   : Quay về Home
+    Basic | Desert | Jungle | Bee's Hive   : Load ảnh map tương ứng, chuyển
+                                              sang Select Difficulty
+
+4.3 Select Difficulty
+    Back                    : Quay về Select Map
+    Easy | Normal | Hard    : Hiển thị thông tin map
+    Explore                 : Hiển thị thông tin map (ẩn ở Bee's Hive)
+    Start                   : Dựa vào (map, độ khó): load kỷ lục và dữ liệu
+                               chơi dở (nếu có), chuyển sang GAME
+
+4.4 GAME
+    Back (luôn có)
+        Mở hộp thoại xác nhận (che vùng lưới, xem mục 9.3):
+          - "Back"     : lưu tiến trình hiện tại vào đúng file theo
+                          (map, độ khó) rồi thoát ra Select Map
+          - "Continue" : đóng hộp thoại, chơi tiếp
+
+    Home (khi ván kết thúc)
+        Đóng giao diện kết thúc, chuyển về Home
+
+    Play Again (khi ván kết thúc)
+        Load lại màn chơi mới nguyên bản, reset thời gian, đóng giao diện
+        kết thúc
+
+
+5. LUẬT RIÊNG TỪNG BẢN ĐỒ----------------------------------------------------------------------------------------------------------------------
+
+    Basic       - Lưới ô vuông   - Dò mìn truyền thống
+    Desert      - Lưới ô vuông   - Cát định kỳ che số gợi ý của ô đã mở;
+                                    giữ chuột trái khoảng 3 giây để lau
+    Jungle      - Lưới ô vuông   - Rễ cây định kỳ mọc trên ô chưa mở;
+                                    giữ chuột trái khoảng 3 giây để phá
+    Bee's Hive  - Lưới lục giác  - 2 mạng; mở trúng ong sẽ kích hoạt hiệu
+                                    ứng và trừ mạng (chi tiết mục 5.3)
+
+5.1 Desert - cơ chế cát
+    - Chỉ áp dụng cho ô đã mở, có số gợi ý từ 1 trở lên, chưa bị che.
+    - Định kỳ mỗi khoảng T giây (đề xuất 8-15 giây, ngẫu nhiên), chọn ngẫu
+      nhiên 1 ô hợp lệ để phủ cát.
+    - Giới hạn số ô bị che cùng lúc (đề xuất khoảng 15-20% số ô đã mở) để
+      tránh che kín màn hình.
+    - Ô vừa lau xong cần thời gian hồi trước khi có thể bị chọn che lại
+      (đề xuất bằng T).
+    - Nếu người chơi rê chuột ra khỏi ô đang đếm giờ giữ (chưa thả chuột)
+      thì hủy đếm ngay, không cần đợi thả chuột.
+
+5.2 Jungle - cơ chế rễ cây
+    - Chỉ áp dụng cho ô chưa mở, chưa cắm cờ.
+    - Định kỳ mỗi khoảng T giây: mỗi ô chưa mở có khoảng 2% cơ hội mọc rễ;
+      ô chưa mở kề ô vừa mọc rễ có khoảng 5% cơ hội mọc theo.
+    - Ô đã cắm cờ sẽ không mọc rễ.
+    - Ô đang mọc rễ không thể mở hoặc cắm cờ cho tới khi bị phá.
+    - Quy tắc hủy đếm giờ giống Desert.
+
+5.3 Bee's Hive - hiệu ứng khi mở trúng ong
+
+    Trình tự khi người chơi mở phải một ô có ong:
+      1. Hiện icon ong tại ô đó.
+      2. Ong phình to một chút trong khoảnh khắc ngắn (0.3 giây).
+      3. Màn hình rung một phát kèm hiệu ứng viền đỏ chớp nhẹ quanh màn hình.
+      4. Trừ 1 mạng người chơi.
+      5. Ong biến mất khỏi ô, ô đó chuyển thành trạng thái đã mở an toàn,
+         số gợi ý của chính ô đó được tính lại.
+      6. Trừ 1 vào số gợi ý của các ô lân cận quanh ô vừa mất ong, không
+         tính chính ô đó.
+
+    Ghi chú kỹ thuật: lưới Bee's Hive là lục giác nên mỗi ô chỉ có 6 ô lân
+    cận trực tiếp, khác với lưới vuông có 8 ô lân cận. Bước 6 áp dụng cho
+    đúng số ô lân cận thực tế theo loại lưới đang dùng.
+
+    Nếu mất mạng thứ 2, người chơi thua ngay và giao diện thua hiển thị
+    (mục 10). Điều kiện thắng: số ô chưa mở (không tính ong) bằng số ong
+    chưa bị mở hoặc chưa bị kích hoạt.
+
+
+6. ĐỘ KHÓ VÀ THÔNG SỐ----------------------------------------------------------------------------------------------------------------------
+
+    Easy
+        Kích thước lưới                     : 9x9
+        Số mìn|ong                          : 9
+        Bắt buộc giải bằng suy luận thuần   : Ưu tiên, không bắt buộc
+
+    Normal
+        Kích thước lưới                     : 16x16
+        Số mìn|ong                          : 40
+        Bắt buộc giải bằng suy luận thuần   : Ưu tiên, không bắt buộc
+
+    Hard
+        Kích thước lưới                     : 31x16
+        Số mìn|ong                          : 99
+        Bắt buộc giải bằng suy luận thuần   : Bắt buộc
+
+    Explore
+        Kích thước lưới                     : Vô hạn, chunk 16x16 kiểu Minecraft
+        Số mìn|ong                          : 30-40 mìn mỗi chunk, có cơ chế giảm dần khi tạo map không thành công 300 lần (mục 8.4)
+        Bắt buộc giải bằng suy luận thuần   : Bắt buộc trong phạm vi các chunk đã tạo.
+
+    Explore không áp dụng cho Bee's Hive.
+
+
+7. CƠ CHẾ MỞ MÀN AN TOÀN VÀ FLOOD FILL.----------------------------------------------------------------------------------------------------------------------
+
+Vùng an toàn cho cú click đầu tiên gồm ô được click và toàn bộ ô lân cận
+(8 ô ở lưới vuông, 6 ô ở lưới lục giác); không đặt mìn trong vùng này.
+
+Flood fill: khi một ô được mở có số gợi ý bằng 0, hệ thống tự động mở toàn
+bộ ô lân cận; nếu ô lân cận cũng bằng 0 thì tiếp tục lan cho tới khi gặp ô
+có số từ 1 trở lên. Đây là cơ chế bắt buộc cho mọi map và mọi độ khó.
+
+
+8. THUẬT TOÁN SINH BÀN VÀ GIẢI TRƯỚC (SOLVER)----------------------------------------------------------------------------------------------------------------------
+
+8.1 Quy trình chung cho Easy, Normal, Hard
+    1. Người chơi click ô đầu tiên.
+    2. Sinh mìn ngẫu nhiên, tránh vùng an toàn (mục 7).
+    3. Chạy solver mô phỏng giải bàn, ẩn với người chơi.
+    4. Nếu giải được thì dùng bàn này; nếu bí thì sinh lại mìn (giữ nguyên
+       vùng an toàn) và giải lại.
+
+8.2 Solver cho Easy|Normal (lưới vuông) và Easy|Normal|Hard (Bee's Hive)
+    Lặp cho tới khi không còn tiến triển:
+    1. Với ô đã mở có số gợi ý từ 1 trở lên: nếu số ô che quanh nó bằng
+       đúng số gợi ý thì cắm cờ hết các ô che đó.
+    2. Với ô đã mở có số gợi ý từ 1 trở lên: nếu số ô đã cắm cờ quanh nó
+       bằng số gợi ý thì mở hết các ô che còn lại chưa cắm cờ.
+    3. Nếu một vòng lặp không cắm được cờ mới và không mở được ô mới thì
+       bàn bí, quay lại bước sinh lại mìn.
+
+8.3 Solver cho Hard (lưới vuông)
+    Giống bước 1-2 ở mục 8.2, khi bí thì thêm bước suy luận nâng cao:
+    3. Nếu bước 1-2 có tiến triển thì quay lại bước 1.
+    4. Nếu không tiến triển:
+       a. Tìm mìn chắc chắn bằng loại trừ tổ hợp: với các ô số có ô che
+          chưa cắm cờ liền kề, thử mọi tổ hợp đặt cờ khả dĩ sao cho thỏa
+          mãn đồng thời mọi ô số liên quan trong vùng lân cận; nếu một ô
+          che luôn là mìn ở mọi tổ hợp hợp lệ thì cắm cờ ô đó.
+       b. Tìm ô an toàn chắc chắn: tương tự nhưng tìm ô che không bao giờ
+          là mìn ở mọi tổ hợp hợp lệ, rồi mở ô đó.
+    5. Nếu bước 4 có kết quả thì quay lại bước 1; nếu không thì bàn bí,
+       quay lại sinh lại mìn.
+    6. Giới hạn số lần sinh lại (đề xuất 200-500 lần) trước khi nới lỏng
+       ràng buộc, để tránh treo máy.
+
+8.4 Solver và sinh mìn cho Explore
+
+    Sinh mìn theo chunk:
+    1. Khi một chunk cần sinh mìn (người chơi chạm tới), lấy dữ liệu 8
+       chunk lân cận xung quanh. Chunk lân cận nào chưa từng được tạo thì
+       coi như không có mìn khi đưa vào mô phỏng.
+    2. Gộp chunk hiện tại và 8 chunk lân cận vào một mảng mô phỏng.
+    3. Random số mìn cho chunk hiện tại trong khoảng 30-40.
+    4. Chạy solver theo thuật toán mục 8.3 để kiểm tra chunk vừa sinh có
+       giải được bằng suy luận, kết hợp liền mạch với dữ liệu biên của
+       các chunk xung quanh.
+    5. Nếu sau 200 lần thử vẫn không tạo được bàn giải được thì giảm
+       khoảng số mìn xuống 20-39, tiếp tục random và giải thử.
+    6. Nếu sau 500 lần thử (tính từ đầu) vẫn chưa được thì giảm khoảng số
+       mìn xuống 10-19, tiếp tục cho tới khi thành công.
+
+    Solver không chỉ chạy một lần lúc bắt đầu mà chạy lại mỗi khi có một
+    chunk mới được sinh, để đảm bảo vùng biên giáp giữa chunk mới và các
+    chunk cũ vẫn giải được liền mạch bằng suy luận.
+
+    Kết thúc phiên Explore: người chơi thua ngay nếu mở trúng ô mìn, khi
+    đó giao diện kết quả Explore hiển thị (mục 10.2). Explore không có
+    điều kiện thắng; người chơi có thể chơi tiếp vô hạn cho tới khi mở
+    trúng mìn hoặc chủ động thoát ra bằng nút Back (lưu tiến trình để
+    chơi tiếp sau, không tính là kết thúc phiên).
+    
+
+9. XỬ LÝ INPUT TRONG MÀN CHƠI----------------------------------------------------------------------------------------------------------------------
+
+9.1 Khi chuột ở ngoài vùng lưới game
+    - Nhấn chuột trái: ghi nhớ nút đang trỏ tới.
+    - Thả chuột trái: nếu vị trí thả trùng đúng nút đã ghi nhớ thì thực
+      thi hành động của nút.
+
+9.2 Khi chuột ở trong vùng lưới game
+
+    Chuột phải - cắm cờ hoặc kéo màn hình, áp dụng cho mọi map:
+    - Nhấn chuột phải: ghi nhớ tọa độ gốc, bắt đầu đếm thời gian.
+    - Nếu giữ quá 0.5 giây, hoặc di chuyển vượt ngưỡng khoảng 5 pixel so
+      với tọa độ gốc dù chưa đủ 0.5 giây, thì chuyển sang chế độ kéo màn
+      hình, view di chuyển ngược hướng chuột.
+    - Khi thả chuột phải: nếu thời gian giữ nhỏ hơn hoặc bằng 0.5 giây,
+      chưa vượt ngưỡng khoảng cách, và tọa độ nhấn|thả cùng trỏ vào 1 ô
+      đang ở trạng thái chưa mở, thì xoay trạng thái ô theo thứ tự
+      Bình thường -> Cờ -> Nghi ngờ -> quay lại Bình thường. Sau đó tắt
+      đếm thời gian.
+ 
+    Chuột trái - mở ô, khung xử lý chung cho mọi map:
+    - Nhấn chuột trái vào ô chưa mở và chưa cắm cờ: ghi nhớ ô đang trỏ.
+    - Thả chuột trái: nếu tọa độ thả vẫn trỏ đúng ô đã ghi nhớ thì mở ô
+      đó, kích hoạt flood fill nếu số gợi ý bằng 0.
+
+    Riêng theo từng map (điều kiện bắt đầu đếm giữ 3 giây | hành động sau
+    khi đủ 3 giây):
+        Desert     : Nhấn vào ô đã mở, đang bị cát che -> Xóa lớp cát
+        Jungle     : Nhấn vào ô chưa mở, đang mọc rễ -> Xóa rễ cây
+        Basic,
+        Bee's Hive : Không áp dụng
+
+    Quy tắc hủy đếm giữ 3 giây: thả chuột sớm hoặc rê chuột ra khỏi ô
+    đang giữ (chưa thả chuột) đều hủy đếm ngay lập tức.
+
+9.3 Quy tắc dừng đồng hồ đếm giờ
+    Nguyên tắc chung: bất kỳ lúc nào có lớp nền hoặc overlay che vùng
+    lưới game (để người chơi không nhìn thấy bàn mà giải), đồng hồ sẽ
+    dừng đếm và không tiếp tục cho tới khi overlay đó đóng lại. Nguyên
+    tắc này áp dụng cho hộp thoại xác nhận Back trong GAME, và cho giao
+    diện kết thúc ván (thắng, thua, hoặc kết quả Explore).
+
+
+10. ĐIỀU KIỆN KẾT THÚC VÁN----------------------------------------------------------------------------------------------------------------------
+
+10.1 Basic, Desert, Jungle (Easy, Normal, Hard) và Bee's Hive
+
+    Thua: xảy ra khi mở phải ô mìn (Basic, Desert, Jungle) hoặc mất hết
+    2 mạng (Bee's Hive).
+        - Giao diện thua gồm nút Home và nút Play Again.
+        - Xóa file lưu tiến trình của (map, độ khó) hiện tại, để lần
+          Start sau không load nhầm lại bàn vừa thua.
+ 
+    Thắng: xảy ra khi số ô chưa mở (không tính mìn hoặc ong) bằng số
+    mìn hoặc ong.
+        - Giao diện thắng hiển thị thời gian hoàn thành; nếu nhanh hơn
+          kỷ lục cũ thì hiện dòng "New High Score" và ghi đè file kỷ
+          lục; kèm nút Home và nút Play Again.
+        - Xóa file lưu tiến trình tương tự trường hợp thua.
+
+10.2 Basic, Desert, Jungle - chế độ Explore
+
+    Explore không có thắng hoặc thua theo nghĩa truyền thống; phiên chơi
+    kết thúc khi mở trúng ô mìn. Giao diện kết quả khi đó gồm:
+        - Số cờ đặt đúng (trùng ô có mìn thật).
+        - Số cờ đặt sai (cắm vào ô không có mìn).
+        - Điểm số, bằng số cờ đúng trừ số cờ sai.
+        - Nếu điểm số này cao hơn kỷ lục đã lưu trước đó, hiện dòng
+          "kỷ lục mới" ngay dưới điểm số, đồng thời ghi đè kỷ lục.
+        - Nút Home và nút Play Again; Play Again sẽ tạo một phiên
+          Explore mới, không load lại chunk cũ.
+        - Xóa file lưu chunk dở dang của phiên vừa kết thúc.
+
+
+11. LƯU TRỮ DỮ LIỆU----------------------------------------------------------------------------------------------------------------------
+
+11.1 Basic, Desert, Jungle, Bee's Hive - Easy, Normal, Hard
+
+    Bản đồ chơi dở
+        Khi ghi  : Khi bấm Back rồi xác nhận Back trong GAME
+        Khi xóa  : Khi ván kết thúc (thắng hoặc thua)
+
+    Kỷ lục thời gian
+        Khi ghi  : Khi thắng và thời gian nhanh hơn kỷ lục cũ
+        Khi xóa  : Không xóa, chỉ ghi đè khi có kỷ lục mới
+
+11.2 Cài đặt chung
+    Music và Voice không được lưu vào file; mỗi lần mở game sẽ reset về
+    mặc định.
+
+11.3 Explore - định dạng file lưu chunk
+
+    Mỗi chunk được lưu trong 17 dòng liên tiếp trong file:
+        - Dòng 1            : tọa độ chunk.
+        - Dòng 2 đến dòng 17 (16 dòng): dữ liệu 16 hàng ô của chunk đó,
+          gồm thông tin mìn, trạng thái mở|cờ|nghi ngờ, và số gợi ý.
+     
+    Khi vào màn Explore, hệ thống dựa vào (map, độ khó Explore) đang
+    chọn để xác định đúng file cần đọc. Toàn bộ chunk trong file được
+    nạp vào một cấu trúc kiểu bản đồ (std::map) theo tọa độ chunk để tra
+    cứu nhanh.  
+
+    Khi bấm Back và xác nhận, hoặc khi thoát game, toàn bộ các chunk
+    hiện có trong cấu trúc dữ liệu sẽ được ghi lại xuống file, ghi đè
+    lên dữ liệu cũ. 
+
+    Nếu chưa từng có phiên chơi trước đó và không có file lưu, hệ thống
+    sẽ không tự sinh sẵn chunk nào; nó sẽ chờ người chơi click vào một
+    chunk bất kỳ, khi đó mới sinh mìn cho chunk đó theo thuật toán mục
+    8.4 rồi bắt đầu chơi.
+
+    Kỷ lục điểm số Explore được lưu riêng theo (map, độ khó Explore),
+    không nằm trong file chunk.

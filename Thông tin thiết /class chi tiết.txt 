@@ -1,0 +1,542 @@
+THIẾT KẾ CHI TIẾT CLASS - GAME DÒ MÌN
+==================================================
+Ký hiệu: kiểu tên : mô tả. Cú pháp theo kiểu C++ (có dùng std::map,
+std::function). Tên và kiểu có thể đổi theo thư viện đồ họa đang dùng
+(SFML, SDL, Raylib...).
+
+
+0. CẤU TRÚC VÀ ENUM PHỤ
+--------------------------------------------------
+
+Vec2            { int x, y }              Tọa độ pixel.
+Rect            { int x, y, w, h }        Hình chữ nhật (nút, vùng lưới).
+                  hàm: bool contains(Vec2)
+CellCoord       { int x, y }              Tọa độ ô trên bàn (cột, hàng).
+                  có operator== và operator< để làm khóa std::map/set.
+                  Với HexBoard: dùng tọa độ lưới offset (hàng chẵn/lẻ).
+ChunkCoord      { int cx, cy }            Tọa độ chunk (cũng có operator<).
+
+enum MapType        { Basic, Desert, Jungle, BeeHive }
+enum Difficulty     { Easy, Normal, Hard, Explore }
+enum CellState      { Hidden, Flagged, Questioned, Opened }
+enum GameResult     { Playing, Win, Lose }
+enum OpenResult     { Safe, HitMine, LostLife, Blocked }
+                      Blocked: ô không mở được (đang có rễ, đã cắm cờ...)
+enum ButtonState    { Normal, Hover, Pressed }
+
+InputEvent      { type (MouseDown | MouseUp | MouseMove),
+                  button (Left | Right), Vec2 pos }
+                  Mọi input chuột được gói thành InputEvent rồi truyền
+                  từ Game -> Screen -> Button/Overlay.
+
+SaveData (bàn chơi dở, Easy/Normal/Hard)
+                { rows, cols, mineCount, elapsedTime, lives,
+                  vector<CellData> cells }
+CellData        { isMine, state, number, hasSand, hasRoot }
+
+
+1. NHÓM ĐIỀU KHIỂN CHÍNH
+--------------------------------------------------
+
+Game
+  Biến:
+    - ResourceManager resources     : tài nguyên dùng chung
+    - SaveManager saveManager       : lưu/đọc file dùng chung
+    - unique_ptr<Screen> current    : màn hình đang hiển thị
+    - unique_ptr<Screen> pending    : màn hình sắp chuyển tới (đổi ở
+                                      cuối frame để tránh hủy Screen
+                                      đang chạy)
+    - bool musicOn, voiceOn         : cài đặt, mặc định bật, KHÔNG lưu
+    - bool running                  : cờ vòng lặp chính
+  Hàm:
+    - void run()                    : vòng lặp: đọc input -> update ->
+                                      render, tính dt
+    - void changeScreen(unique_ptr<Screen>) : đặt pending
+    - void quit()                   : running = false (với Explore thì
+                                      GameScreen phải lưu chunk trước)
+    - void toggleMusic(), toggleVoice()
+    - ResourceManager& getResources(), SaveManager& getSave()
+
+Screen (abstract)
+  Biến:
+    - Game& game                    : để gọi changeScreen, lấy tài nguyên
+    - vector<Button> buttons        : các nút của màn này
+  Hàm:
+    - virtual void handleInput(const InputEvent&) = 0
+    - virtual void update(float dt) = 0
+    - virtual void render() = 0
+    - void updateButtons(const InputEvent&) : đưa input cho từng nút
+    - void renderButtons()
+
+HomeScreen : Screen
+  Biến:
+    - Overlay exitDialog            : hộp thoại xác nhận thoát
+  Hàm:
+    - void onPlay()                 : changeScreen(SelectMapScreen)
+    - void onExit()                 : mở exitDialog
+    - void onConfirmExit()          : game.quit()
+    - void onCancelExit()           : đóng exitDialog
+    - void onToggleMusic(), onToggleVoice()
+
+SelectMapScreen : Screen
+  Hàm:
+    - void onSelectMap(MapType)     : load ảnh map, changeScreen sang
+                                      SelectDifficultyScreen
+    - void onBack()                 : về HomeScreen
+
+SelectDifficultyScreen : Screen
+  Biến:
+    - MapType map
+    - Difficulty selected           : độ khó đang chọn
+    - string infoText               : thông tin map hiển thị
+  Hàm:
+    - void onSelectDifficulty(Difficulty)  : cập nhật selected, infoText
+    - void onStart()                : load kỷ lục + ván dở (nếu có),
+                                      tạo GameScreen rồi changeScreen
+    - void onBack()                 : về SelectMapScreen
+    (nút Explore bị ẩn khi map == BeeHive)
+
+GameScreen : Screen            (GIỮ TOÀN BỘ PHIÊN CHƠI)
+  Biến:
+    - MapType map; Difficulty difficulty
+    - unique_ptr<IBoard> board      : SquareBoard | HexBoard | ChunkManager
+    - unique_ptr<GameMode> mode     : Basic | Desert | Jungle | BeeHive
+    - unique_ptr<HUD> hud           : StandardHUD | ExploreHUD
+    - Player player
+    - Timer timer
+    - Camera camera
+    - Rect gridArea                 : vùng lưới game trên màn hình
+    - Button btnBack, btnPause
+    - Overlay backDialog, pauseOverlay, endOverlay
+    - GameResult result
+    - double record                 : kỷ lục đã load (thời gian | điểm)
+    - bool firstClickDone           : đã sinh mìn chưa (Board cố định)
+    - Trạng thái chuột phải:
+        bool rightDown; Vec2 rightOrigin; float rightHeld;
+        bool dragging
+    - Trạng thái chuột trái:
+        bool leftDown; CellCoord leftCell
+    - Trạng thái giữ 3 giây:
+        bool holding; CellCoord holdCell; float holdTime
+  Hàm:
+    - void handleInput(const InputEvent&)  : phân luồng:
+                                      overlay mở -> chỉ overlay nhận;
+                                      ngoài lưới -> Button; trong lưới
+                                      -> handleGridInput
+    - void handleGridInput(const InputEvent&)
+    - void onRightDown/onRightMove/onRightUp(Vec2)
+                                    : cờ (nhấn nhanh <= 0.5s, di chuyển
+                                      <= 5px) hoặc kéo camera
+    - void onLeftDown/onLeftUp(Vec2): mở ô khi thả trùng ô đã nhấn
+    - void startHold(CellCoord), cancelHold()
+                                    : bắt đầu/hủy đếm giữ 3 giây (hủy khi
+                                      thả sớm hoặc rê ra khỏi ô)
+    - void openCell(CellCoord)      : (1) nếu chưa firstClickDone thì
+                                      board->generate(cell); (2) mode->
+                                      onCellOpen; (3) xử lý OpenResult
+    - void toggleFlag(CellCoord)    : xoay Bình thường -> Cờ -> Nghi ngờ,
+                                      cập nhật Player (cờ đúng/sai)
+    - void update(float dt)         : timer, mode->onTick, tiến độ giữ
+                                      chuột, hud->update
+    - void render()                 : vẽ lưới (qua camera), hiệu ứng
+                                      mode, HUD, nút, overlay
+    - void checkGameEnd()           : thắng/thua theo từng chế độ
+    - void onWin(), onLose(), onExploreEnd()
+                                    : dựng endOverlay, ghi kỷ lục, xóa
+                                      file tiến trình
+    - void saveAndExit()            : lưu ván (hoặc chunk) rồi về
+                                      SelectMapScreen
+    - void playAgain()              : tạo phiên mới (Explore: không
+                                      load lại chunk cũ)
+    - void openOverlay(Overlay&), closeOverlay(Overlay&)
+                                    : mở -> timer.pause(); đóng ->
+                                      timer.resume()
+
+Camera
+  Biến:
+    - Vec2 offset                   : độ lệch view so với gốc bàn chơi
+    - int cellSize                  : kích thước ô (pixel)
+  Hàm:
+    - void move(int dx, int dy)     : view đi NGƯỢC hướng chuột khi kéo
+    - Vec2 screenToWorld(Vec2)
+    - Vec2 worldToScreen(Vec2)
+    - void reset()
+
+
+2. NHÓM BÀN CHƠI VÀ Ô
+--------------------------------------------------
+
+IBoard (interface)
+  Hàm thuần ảo:
+    - Cell* getCell(CellCoord)      : nullptr nếu ngoài bàn (Explore:
+                                      chunk chưa tạo)
+    - vector<CellCoord> getNeighbors(CellCoord)
+    - void generate(CellCoord firstClick)
+                                    : sinh mìn (Board: toàn bàn;
+                                      ChunkManager: chunk chứa ô đó)
+    - void floodFill(CellCoord)
+    - bool checkWin()               : ChunkManager luôn trả false
+    - CellCoord pixelToCell(Vec2 worldPos)
+    - Vec2 cellToPixel(CellCoord)   : vuông và lục giác khác nhau
+    - int getMineCount()            : ChunkManager trả -1 (vô hạn)
+    - int getFlagCount()
+
+Board (abstract) : IBoard            (bàn cố định)
+  Biến:
+    - int rows, cols, mineCount
+    - Difficulty difficulty
+    - vector<vector<Cell>> cells
+    - bool generated
+  Hàm:
+    - void generate(CellCoord firstClick)  : vòng lặp: placeMines ->
+                                      calculateNumbers -> Solver; bí thì
+                                      sinh lại, quá giới hạn thì nới
+                                      ràng buộc
+    - void placeMines(const vector<CellCoord>& safeZone)
+    - void calculateNumbers()
+    - vector<CellCoord> getSafeZone(CellCoord)
+                                    : ô click + toàn bộ ô lân cận
+    - void floodFill(CellCoord)     : dùng stack/queue (KHÔNG đệ quy,
+                                      tránh tràn stack ở lưới 31x16)
+    - bool checkWin()               : số ô chưa mở (trừ mìn/ong) == số
+                                      mìn/ong còn lại
+    - bool inBounds(CellCoord)
+    - int countFlags(), countHidden()
+    - SaveData toSaveData() / void fromSaveData(const SaveData&)
+    - void reset()                  : phục vụ Play Again
+
+SquareBoard : Board
+  Hàm:
+    - getNeighbors : 8 ô lân cận
+    - pixelToCell / cellToPixel     : chia theo cellSize
+
+HexBoard : Board
+  Biến:
+    - int hexSize                   : bán kính ô lục giác
+  Hàm:
+    - getNeighbors : 6 ô lân cận, danh sách hướng khác nhau cho hàng
+                     chẵn và hàng lẻ
+    - pixelToCell / cellToPixel     : quy đổi tọa độ lục giác
+
+Cell
+  Biến:
+    - bool isMine                   : ô mìn (hoặc ong)
+    - CellState state
+    - int number                    : số gợi ý
+    - bool hasSand                  : Desert, đang bị cát che
+    - bool hasRoot                  : Jungle, đang có rễ
+  Hàm:
+    - bool open()                   : đặt Opened, trả isMine
+    - void toggleFlag()             : Hidden -> Flagged -> Questioned
+                                      -> Hidden
+    - bool canOpen()                : Hidden và không rễ (cờ thì không
+                                      mở)
+    - bool canFlag()                : chưa mở và không rễ
+    - bool isOpened() / isFlagged()
+
+Solver
+  Dữ liệu đầu vào (struct SolverGrid, bản sao nhẹ của bàn):
+    - int width, height
+    - vector<SolverCell> cells      : { isMine, isOpen, isFlag, number,
+                                        valid }
+    - bool hex                      : chọn kiểu lân cận
+  Hàm:
+    - static bool solveBasic(SolverGrid&)
+        : lặp: (1) số ô che quanh == số gợi ý -> cắm cờ hết; (2) số cờ
+          quanh == số gợi ý -> mở hết ô còn lại; không tiến triển thì
+          trả false. Dùng cho Easy/Normal.
+    - static bool solveAdvanced(SolverGrid&)
+        : solveBasic, khi bí thì loại trừ tổ hợp (findCertainMines,
+          findCertainSafe). Dùng cho Hard và Explore.
+    - static bool findCertain(SolverGrid&)
+        : tách các ô che kề ô số thành nhóm liên thông, duyệt quay lui
+          các tổ hợp mìn thỏa mọi ô số; ô luôn là mìn -> cắm cờ, ô luôn
+          an toàn -> mở. Cần GIỚI HẠN kích thước nhóm (ví dụ <= 20-25
+          ô) để không bị bùng nổ tổ hợp.
+    - static bool isSolved(const SolverGrid&)
+    - static SolverGrid fromBoard(const Board&, CellCoord firstClick)
+    - static SolverGrid fromChunks(ChunkManager&, ChunkCoord)
+        : gộp chunk hiện tại + 8 chunk lân cận (chunk chưa tạo = không
+          có mìn)
+
+
+3. NHÓM LUẬT CHƠI THEO TỪNG MAP
+--------------------------------------------------
+
+GameMode (abstract)
+  Biến:
+    - IBoard* board
+    - Player* player
+  Hàm:
+    - virtual OpenResult onCellOpen(CellCoord) : mặc định: cell->open(),
+                                      floodFill nếu number == 0, trả
+                                      HitMine nếu là mìn
+    - virtual bool canHold(CellCoord)  : ô này có bắt đầu đếm 3 giây
+                                      không (mặc định false)
+    - virtual void onLeftHold(CellCoord): hành động khi giữ đủ 3 giây
+    - virtual void onTick(float dt)    : cập nhật theo thời gian
+    - virtual bool canInteract(CellCoord) : cho phép mở/cắm cờ không
+                                      (Jungle: ô có rễ trả false)
+    - virtual void renderEffects()     : vẽ cát/rễ/hiệu ứng ong
+    - virtual bool isBlockingInput()   : đang chạy hiệu ứng, chặn input
+    - virtual void saveExtra / loadExtra : lưu trạng thái riêng của map
+
+BasicMode : GameMode
+    Không thêm biến/hàm nào; dùng hành vi mặc định.
+
+DesertMode : GameMode
+  Biến:
+    - float timer, nextInterval     : T ngẫu nhiên 8-15 giây
+    - map<CellCoord, float> cooldown: ô vừa lau, đợi hết thời gian hồi
+                                      mới bị che lại
+    - int sandedCount
+  Hàm:
+    - void onTick(float dt)         : đủ T thì pickCellToSand()
+    - void pickCellToSand()         : chọn ngẫu nhiên 1 ô đã mở, số >= 1,
+                                      chưa bị che, không còn cooldown;
+                                      tôn trọng giới hạn maxSanded()
+    - int maxSanded()               : khoảng 15-20% số ô đã mở
+    - bool canHold(CellCoord)       : ô đã mở và hasSand
+    - void onLeftHold(CellCoord)    : bỏ cát, đặt cooldown = T
+
+JungleMode : GameMode
+  Biến:
+    - float timer, interval         : T giây mỗi chu kỳ
+    - float rootChance = 0.02       : cơ hội mọc rễ của ô chưa mở
+    - float spreadChance = 0.05     : cơ hội mọc theo của ô kề rễ
+  Hàm:
+    - void onTick(float dt)         : đủ T thì growRoots()
+    - void growRoots()              : bỏ qua ô đã cắm cờ; ô mới mọc rễ
+                                      tính cơ hội lan sang ô kề
+    - bool canInteract(CellCoord)   : false nếu hasRoot
+    - bool canHold(CellCoord)       : ô chưa mở và hasRoot
+    - void onLeftHold(CellCoord)    : phá rễ
+
+BeeHiveMode : GameMode
+  Biến:
+    - enum BeeStage { None, Show, Grow, Shake }
+    - BeeStage stage
+    - float stageTime
+    - CellCoord beeCell
+    - Vec2 shakeOffset              : độ lệch rung màn hình
+    - float redAlpha                : độ đậm viền đỏ
+  Hàm:
+    - OpenResult onCellOpen(CellCoord)
+        : nếu trúng ong -> startBeeEffect(), trả LostLife
+    - void startBeeEffect(CellCoord)
+    - void onTick(float dt)         : tiến stage theo thời gian (Grow
+                                      0.3s, rung, viền đỏ chớp); hết
+                                      hiệu ứng thì resolveBee()
+    - void resolveBee()             : player->loseLife(); ong biến mất
+                                      (isMine = false, ô Opened); tính
+                                      lại number của ô đó; trừ 1 number
+                                      của các ô lân cận (6 ô, không tính
+                                      chính nó)
+    - bool isBlockingInput()        : true khi stage != None
+    - Vec2 getShakeOffset(), float getRedAlpha()
+    - void renderEffects()
+
+
+4. NHÓM DỮ LIỆU NGƯỜI CHƠI VÀ THỜI GIAN
+--------------------------------------------------
+
+Player
+  Biến:
+    - int lives = 2                 : chỉ dùng ở Bee's Hive
+    - int correctFlags, wrongFlags  : chỉ dùng ở Explore
+  Hàm:
+    - void loseLife()
+    - bool isDead()                 : lives <= 0
+    - void onFlagPlaced(bool isMine)  : đúng/sai tăng tương ứng
+    - void onFlagRemoved(bool isMine) : (khi cờ -> nghi ngờ/bình thường)
+    - int getScore()                : max(0, correctFlags - wrongFlags)
+    - void reset()
+
+Timer
+  Biến:
+    - double elapsed
+    - bool running
+  Hàm:
+    - void start(), pause(), resume(), reset()
+    - void update(float dt)         : cộng dồn khi running
+    - double getSeconds()
+    - void setElapsed(double)       : dùng khi load ván dở
+    - string format()               : "mm:ss"
+
+
+5. NHÓM UI DÙNG CHUNG (WIDGET)
+--------------------------------------------------
+
+Button
+  Biến:
+    - Rect rect                     : vị trí cố định
+    - string id                     : tra ảnh (id, id_hover, id_pressed)
+    - ButtonState state
+    - bool pressedInside            : đã nhấn trúng nút này chưa
+    - bool enabled, visible
+    - function<void()> onClick      : do Screen/Overlay gắn vào
+  Hàm:
+    - void handleInput(const InputEvent&)
+        : MouseMove -> Hover | Normal; MouseDown trong rect -> Pressed,
+          pressedInside = true; MouseUp: nếu pressedInside và vẫn trong
+          rect -> gọi onClick; luôn reset pressedInside
+    - void render(ResourceManager&)
+    - void setOnClick(function<void()>)
+    - void setVisible(bool), setEnabled(bool)
+    - void cancel()                 : reset trạng thái (khi overlay mở)
+
+Overlay
+  Biến:
+    - bool visible
+    - vector<Button> buttons
+    - vector<TextLine> texts        : tiêu đề, thời gian, điểm, dòng
+                                      "New High Score"...
+    - string backgroundId
+    - function<void()> onShow, onHide  : GameScreen gắn pause/resume timer
+  Hàm:
+    - void show(), hide()
+    - bool handleInput(const InputEvent&)
+        : khi visible thì NUỐT toàn bộ input (trả true), chuyển cho
+          Button của overlay
+    - void render()
+    - void addButton(Button), setTexts(...)
+  Các overlay dùng trong game:
+    Exit (Home), Back (GameScreen), Pause, Thắng, Thua, Kết quả Explore.
+
+HUD (abstract)
+  Biến:
+    - Timer* timer
+    - Player* player
+  Hàm:
+    - virtual void update()
+    - virtual void render(ResourceManager&) = 0
+    - string formatTime()
+
+StandardHUD : HUD
+  Biến:
+    - IBoard* board
+    - bool showLives                : true khi map == BeeHive
+  Hàm:
+    - int getMinesLeft()            : getMineCount() - getFlagCount()
+    - void render(...)              : mìn còn lại, đồng hồ, mạng
+
+ExploreHUD : HUD
+  Hàm:
+    - void render(...)              : cờ đúng, cờ sai, điểm số (từ
+                                      Player), đồng hồ; không có số mìn
+
+
+6. NHÓM TÀI NGUYÊN VÀ LƯU TRỮ DỮ LIỆU
+--------------------------------------------------
+
+ResourceManager
+  Biến:
+    - map<string, Texture> images   : id -> ảnh
+    - map<string, Sound> sounds
+    - map<string, Vec2> imagePos    : vị trí vẽ cố định theo id
+    - Font font                     : 1 font duy nhất
+    - Music music
+    - bool musicOn, voiceOn
+  Hàm:
+    - void loadImages(string listFile)   : đọc .txt, lấy tên id.png
+    - void loadSounds(string listFile)
+    - void loadFont(string path)
+    - Texture& getImage(string id)
+    - void drawImage(string id)          : vẽ tại imagePos[id]
+    - void drawImageAt(string id, Vec2)  : vẽ ô lưới theo camera
+    - void drawText(string, Vec2, size)
+    - void playSound(string id)          : bỏ qua nếu voiceOn == false
+    - void playMusic(), stopMusic()
+    - void setMusicOn(bool), setVoiceOn(bool)
+
+SaveManager
+  Hàm:
+    Ván dở (Easy/Normal/Hard):
+    - void saveGame(MapType, Difficulty, const SaveData&)
+    - bool loadGame(MapType, Difficulty, SaveData& out)
+    - bool hasSavedGame(MapType, Difficulty)
+    - void deleteGame(MapType, Difficulty)     : khi ván kết thúc
+    Kỷ lục:
+    - double loadRecord(MapType, Difficulty)   : thời gian (nhỏ hơn là
+                                                 tốt hơn) hoặc điểm
+                                                 Explore (lớn hơn là tốt)
+    - bool saveRecordIfBetter(MapType, Difficulty, double value)
+                                               : ghi đè khi vượt kỷ lục,
+                                                 trả true nếu kỷ lục mới
+    Explore:
+    - void saveChunks(MapType, const map<ChunkCoord, Chunk>&)
+    - bool loadChunks(MapType, map<ChunkCoord, Chunk>& out)
+    - void deleteChunks(MapType)               : khi phiên Explore kết
+                                                 thúc
+    Phụ:
+    - string getPath(MapType, Difficulty, kind) : ghép tên file theo
+                                                  (map, độ khó)
+
+ChunkManager : IBoard            (chỉ dùng cho Explore)
+  Biến:
+    - MapType map
+    - map<ChunkCoord, Chunk> chunks     : std::map tra cứu nhanh
+    - int mineMin = 30, mineMax = 40
+    - static const int CHUNK_SIZE = 16
+  Hàm:
+    - Cell* getCell(CellCoord)          : đổi sang (ChunkCoord, tọa độ
+                                          cục bộ); nullptr nếu chưa có
+    - bool hasChunk(ChunkCoord)
+    - ChunkCoord toChunk(CellCoord) / CellCoord toLocal(CellCoord)
+                                          : chia nguyên làm tròn xuống
+                                          (chú ý số âm)
+    - void ensureChunksFor(CellCoord)   : trước khi mở ô, đảm bảo chunk
+                                          chứa ô đó VÀ chunk chứa các ô
+                                          lân cận đã tồn tại
+    - void generate(CellCoord)          : gọi generateChunk
+    - Chunk& generateChunk(ChunkCoord, CellCoord safeCell)
+        : (1) gộp chunk + 8 chunk lân cận (thiếu = không mìn);
+          (2) random số mìn trong [mineMin, mineMax], tránh vùng an
+          toàn; (3) Solver::fromChunks + solveAdvanced; (4) bí: sau 200
+          lần giảm khoảng xuống 20-39, sau 500 lần xuống 10-19, lặp tới
+          khi thành công
+    - void recalcBorderNumbers(ChunkCoord)
+        : sau khi sinh chunk, tính lại số gợi ý của ô viền các chunk kề
+    - void floodFill(CellCoord)         : mở lan qua ranh giới chunk,
+                                          gọi ensureChunksFor trước mỗi ô
+    - bool checkWin()                   : luôn false
+    - void save() / bool load()         : qua SaveManager
+    - void clear()                      : Play Again
+
+Chunk
+  Biến:
+    - ChunkCoord coord
+    - Cell cells[16][16]
+    - bool generated
+  Hàm:
+    - Cell& at(int lx, int ly)          : (struct dữ liệu, không thêm
+                                          logic khác)
+
+
+7. LƯU Ý THIẾT KẾ CẦN CHỐT
+--------------------------------------------------
+
+1) Số gợi ý ở rìa chunk (Explore):
+   Chunk lân cận chưa tạo thì coi như không có mìn, nên số gợi ý của ô
+   ở rìa có thể sai nếu mở ô trước khi chunk kề được sinh. Cách xử lý đã
+   đưa vào thiết kế: ensureChunksFor() sinh đủ chunk kề TRƯỚC khi mở ô,
+   và recalcBorderNumbers() cập nhật ô viền chưa mở sau mỗi lần sinh
+   chunk. Nhờ đó ô đã mở không bao giờ bị đổi số.
+
+2) Vùng an toàn của Explore:
+   Mỗi chunk được sinh do người chơi chạm tới đều nhận một safeCell (ô
+   đang mở) để không đặt mìn quanh ô đó.
+
+3) Lưu file ván dở (Easy/Normal/Hard):
+   Cần ghi thêm trạng thái riêng của map (ô đang cát, ô đang rễ, số
+   mạng) và thời gian đã chơi, ngoài mìn/trạng thái/số của từng ô. Dùng
+   saveExtra/loadExtra của GameMode.
+
+4) Hiệu ứng Bee's Hive:
+   Trong lúc isBlockingInput() == true, GameScreen bỏ qua input vào lưới
+   để tránh mở thêm ô khi ong đang chạy hiệu ứng.
+
+5) Hiệu năng Solver:
+   Explore chạy solver mỗi lần sinh chunk trên mảng 48x48 nên cần giới
+   hạn kích thước nhóm khi duyệt tổ hợp (mục Solver::findCertain) và
+   giới hạn số lần thử.

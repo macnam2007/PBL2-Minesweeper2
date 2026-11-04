@@ -1,0 +1,2 @@
+-std=c++17
+-I/nix/store/88jn43gd3aszrkxwzn3rpjahjgmsr7fa-sfml-3.0.2/include

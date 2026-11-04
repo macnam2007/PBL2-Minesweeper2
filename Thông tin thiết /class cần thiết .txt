@@ -1,0 +1,223 @@
+MÔ TẢ CÔNG DỤNG TỪNG CLASS - GAME DÒ MÌN (BẢN CẬP NHẬT)
+==================================================
+
+Nguyên tắc phân chia:
+- UI (widget): tự lo cả hình lẫn input của riêng nó, KHÔNG biết luật game.
+- Screen: ghép các widget lại, quyết định hành động khi widget báo click.
+- Logic game (Board, Mode, Solver...): KHÔNG biết gì về việc vẽ nút.
+
+
+1. NHÓM ĐIỀU KHIỂN CHÍNH
+--------------------------------------------------
+
+Game
+    Lớp gốc của ứng dụng: chạy vòng lặp chính, giữ màn hình hiện tại
+    và các đối tượng dùng chung (ResourceManager, SaveManager, cài đặt
+    Music/Voice). Chịu trách nhiệm chuyển màn hình (changeScreen).
+    KHÔNG giữ dữ liệu của ván chơi - phần đó thuộc về GameScreen.
+
+Screen (abstract)
+    Lớp trừu tượng định nghĩa hành vi chung cho mọi màn hình: cập nhật
+    (update), vẽ giao diện (render) và xử lý input (handleInput). Mỗi
+    màn hình con sở hữu danh sách Button của riêng nó và quyết định
+    hành động khi một Button báo click (thường là gọi changeScreen).
+
+HomeScreen
+    Màn hình chính: bật/tắt nhạc nền, âm thanh hiệu ứng, nút Play dẫn
+    sang chọn map, nút Exit mở hộp thoại xác nhận thoát (Overlay).
+
+SelectMapScreen
+    Màn hình chọn bản đồ (Basic/Desert/Jungle/Bee's Hive), load ảnh map
+    tương ứng rồi chuyển sang màn chọn độ khó.
+
+SelectDifficultyScreen
+    Màn hình chọn độ khó (Easy/Normal/Hard/Explore, ẩn Explore ở Bee's
+    Hive), hiển thị thông tin map. Khi bấm Start sẽ tạo GameScreen mới
+    theo (map, độ khó), nạp kỷ lục và dữ liệu chơi dở nếu có.
+
+GameScreen
+    Màn hình chơi chính, đồng thời là nơi GIỮ PHIÊN CHƠI hiện tại:
+    IBoard, GameMode, Player, Timer, HUD, Camera. Phân luồng input:
+      - Chuột ngoài vùng lưới  -> đưa cho các Button.
+      - Chuột trong vùng lưới  -> tự xử lý (mở ô, cắm cờ, kéo màn hình)
+                                  và gọi GameMode cho luật riêng.
+      - Overlay đang mở        -> chỉ Button của Overlay nhận input,
+                                  vùng lưới bị khóa.
+    Kiểm tra điều kiện kết thúc ván (checkGameEnd) và mở Overlay thắng/
+    thua/kết quả Explore. Play Again = tạo phiên chơi mới.
+
+Camera
+    Lưu độ lệch (offset) của view lưới game. Phục vụ kéo màn hình bằng
+    chuột phải và đổi qua lại giữa tọa độ màn hình và tọa độ ô. Đặc
+    biệt cần thiết cho Explore (bản đồ vô hạn).
+
+
+2. NHÓM BÀN CHƠI VÀ Ô
+--------------------------------------------------
+
+IBoard (interface)
+    Giao diện chung cho mọi loại bàn chơi (cố định hoặc vô hạn theo
+    chunk), để GameScreen thao tác thống nhất mà không cần biết đang
+    chơi chế độ nào. Định nghĩa các thao tác cơ bản: lấy ô, lấy ô lân
+    cận, kiểm tra thắng.
+
+Board (abstract)
+    Bàn chơi có kích thước cố định (dùng cho Easy/Normal/Hard). Quản lý
+    tập hợp ô, sinh mìn (generate) tránh vùng an toàn của cú click đầu,
+    lan tỏa mở ô trống (floodFill), và kiểm tra điều kiện thắng.
+
+SquareBoard
+    Bàn chơi lưới ô vuông, mỗi ô có 8 ô lân cận. Dùng cho Basic, Desert,
+    Jungle.
+
+HexBoard
+    Bàn chơi lưới lục giác, mỗi ô có 6 ô lân cận. Dùng cho Bee's Hive.
+
+Cell
+    Đại diện một ô trên bàn chơi: trạng thái hiện tại (ẩn/cờ/nghi
+    ngờ/đã mở), có phải ô mìn hay không, số gợi ý xung quanh, và các cờ
+    hiệu ứng theo map (hasSand cho Desert, hasRoot cho Jungle). Cho
+    phép mở ô (open) và đổi trạng thái cờ (toggleFlag). Cell chỉ giữ
+    dữ liệu; việc bật/tắt cát, rễ do GameMode quyết định.
+
+CellState (enum)
+    Liệt kê các trạng thái có thể có của một ô: Hidden, Flagged,
+    Questioned, Opened.
+
+Difficulty (enum)
+    Liệt kê các mức độ khó: Easy, Normal, Hard, Explore - dùng để xác
+    định kích thước lưới và số mìn tương ứng.
+
+Solver
+    Thuật toán giải bàn bằng suy luận thuần (không đoán mò), viết dưới
+    dạng hàm ĐỘC LẬP nhận vào một mảng ô bất kỳ để dùng lại ở nhiều nơi:
+      - Mức cơ bản (cắm cờ / mở ô theo số gợi ý): Easy, Normal.
+      - Mức nâng cao (loại trừ tổ hợp): Hard và Explore.
+    Với Explore, mảng đưa vào là chunk hiện tại gộp 8 chunk lân cận, để
+    kiểm tra vùng biên vẫn giải được liền mạch.
+
+
+3. NHÓM LUẬT CHƠI THEO TỪNG MAP
+--------------------------------------------------
+
+GameMode (abstract)
+    Lớp trừu tượng định nghĩa hành vi riêng của từng bản đồ khi người
+    chơi tương tác: mở ô (onCellOpen), giữ chuột trái (onLeftHold), và
+    cập nhật theo thời gian (onTick) - dùng cho các cơ chế định kỳ như
+    cát che, rễ mọc.
+
+BasicMode
+    Luật chơi dò mìn truyền thống, không có cơ chế đặc biệt nào thêm.
+
+DesertMode
+    Cơ chế cát định kỳ che số gợi ý của ô đã mở; xử lý logic chọn ô để
+    phủ cát mỗi chu kỳ (có giới hạn số ô bị che và thời gian hồi), và
+    xóa cát khi người chơi giữ chuột đủ 3 giây.
+
+JungleMode
+    Cơ chế rễ cây định kỳ mọc trên ô chưa mở, có thể lan sang ô kề; xử
+    lý logic mọc rễ mỗi chu kỳ, và phá rễ khi người chơi giữ chuột đủ 3
+    giây.
+
+BeeHiveMode
+    Cơ chế ong trên lưới lục giác: khi mở trúng ong sẽ trừ mạng, giữ
+    trạng thái hiệu ứng (ong phình to, rung màn hình, viền đỏ chớp) để
+    GameScreen vẽ, và cập nhật lại số gợi ý của các ô lân cận sau khi
+    ong biến mất.
+
+
+4. NHÓM DỮ LIỆU NGƯỜI CHƠI VÀ THỜI GIAN
+--------------------------------------------------
+
+Player
+    Lưu trạng thái người chơi: số mạng còn lại (chỉ dùng ở Bee's Hive)
+    và điểm số (chỉ dùng ở Explore).
+
+Timer
+    Đồng hồ đếm thời gian ván chơi, có thể dừng (pause) khi có Overlay
+    che màn hình và tiếp tục (resume) khi Overlay đóng lại.
+
+
+5. NHÓM UI DÙNG CHUNG (WIDGET)
+--------------------------------------------------
+
+Button
+    Nút bấm dùng chung cho toàn bộ giao diện. Tự xử lý:
+      - Hit-test: chuột có nằm trong nút hay không.
+      - Trạng thái ảnh: bình thường | hover | pressed.
+      - Ghi nhớ "đã nhấn trúng mình"; chỉ tính là click khi nhấn và
+        thả cùng một nút.
+      - Báo click ra ngoài qua callback (std::function<void()>) hoặc
+        giá trị trả về.
+    Button KHÔNG biết Game hay Screen; hành động cụ thể do Screen gắn
+    vào. Vị trí cố định, id dùng để tra ảnh.
+
+Overlay (Dialog)
+    Lớp che vùng lưới chứa một vài Button: hộp thoại xác nhận Exit/Back,
+    màn Pause, giao diện thắng/thua, giao diện kết quả Explore. Khi mở
+    thì yêu cầu Timer dừng, khi đóng thì cho chạy tiếp.
+
+HUD (abstract)
+    Lớp trừu tượng cho thanh thông tin trong màn chơi, định nghĩa hành
+    vi chung: cập nhật đồng hồ và vẽ giao diện.
+
+StandardHUD
+    HUD dùng cho Easy/Normal/Hard: hiển thị số mìn còn lại và số mạng
+    (nếu là Bee's Hive).
+
+ExploreHUD
+    HUD riêng cho chế độ Explore: hiển thị số cờ đặt đúng, số cờ đặt
+    sai, và điểm số hiện tại - không hiển thị số mìn còn lại vì bản đồ
+    vô hạn.
+
+
+6. NHÓM TÀI NGUYÊN VÀ LƯU TRỮ DỮ LIỆU
+--------------------------------------------------
+
+ResourceManager
+    Quản lý load tài nguyên hình ảnh và âm thanh theo id (đọc từ file
+    .txt liệt kê tên), dùng chung cho toàn bộ game. Đây là hạ tầng chứ
+    không phải UI.
+
+SaveManager
+    Quản lý việc lưu/đọc dữ liệu ra file: tiến trình bàn chơi dở
+    (theo map, độ khó), kỷ lục thời gian hoặc điểm số; xóa file tiến
+    trình khi ván kết thúc.
+
+ChunkManager
+    Quản lý bàn chơi vô hạn theo chunk (chỉ dùng cho Explore): tra cứu
+    hoặc sinh chunk mới khi người chơi chạm tới (gọi Solver, giảm dần
+    số mìn nếu sinh không thành công), lưu toàn bộ chunk hiện có xuống
+    file khi thoát. Implement IBoard để GameScreen thao tác thống nhất
+    với Board thông thường.
+
+Chunk
+    Một mảnh bàn chơi kích thước cố định (16x16) trong chế độ Explore,
+    xác định bởi tọa độ chunk và chứa tập hợp ô riêng của nó. Chỉ là
+    struct dữ liệu đơn giản, mọi xử lý do ChunkManager đảm nhiệm.
+
+
+7. LUỒNG INPUT TÓM TẮT
+--------------------------------------------------
+
+Button báo click        ->  Screen quyết định hành động
+                            (changeScreen, mở/đóng Overlay, ...).
+Chuột trong lưới game   ->  GameScreen xử lý chuột phải (cờ / kéo màn
+                            hình qua Camera) và chuột trái (mở ô), rồi
+                            gọi GameMode cho luật riêng của map.
+Overlay đang mở         ->  Timer dừng, lưới khóa, chỉ Button của
+                            Overlay hoạt động.
+
+
+8. THỨ TỰ LÀM ĐỀ XUẤT
+--------------------------------------------------
+
+Giai đoạn 1: Game, Screen, ResourceManager, Button, HomeScreen,
+             SelectMapScreen, SelectDifficultyScreen (khung điều hướng).
+Giai đoạn 2: Cell, IBoard, Board, SquareBoard, Timer, StandardHUD,
+             BasicMode, GameScreen, Camera, Overlay (chơi được Basic).
+Giai đoạn 3: Solver (mức cơ bản rồi nâng cao), SaveManager, kỷ lục,
+             lưu/đọc ván dở.
+Giai đoạn 4: DesertMode, JungleMode, HexBoard, BeeHiveMode, Player.
+Giai đoạn 5: Chunk, ChunkManager, ExploreHUD, Solver gộp 9 chunk,
+             lưu file chunk (điểm nhấn của đồ án).
