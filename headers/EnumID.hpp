@@ -53,12 +53,24 @@ enum class ImageID {
     OL_BtnContinue,
     OL_BtnBackToHome,
 
-
     /* VÙNG LÕI GAME (Core Gameplay) */
+    G_number0, // :> điểm mốc (không có ảnh)
+    G_Number1,
+    G_Number2,
+    G_Number3,
+    G_Number4,
+    G_Number5,
+    G_Number6,
+    G_Number7,
+    G_Flag,
+    G_Bomb,
+    G_Hidded,
+    G_Openned,
+    G_Question,
 
-    /* VÙNG CỦA MOD SA MẠC (Chỉ load khi chơi sa mạc) */
+    /* VÙNG CỦA MOD SA MẠC (Ghi đè lên lõi game) */
 
-    /* VÙNG CỦA MOD RỪNG RẬM */
+    /* VÙNG CỦA MOD RỪNG RẬM (Ghi đè lên lõi game)*/
 
 };
 

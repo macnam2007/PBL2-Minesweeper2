@@ -23,4 +23,8 @@ class AbstractBoard
         
         virtual int GetMineCount() const = 0;
         virtual int GetFlaggedCount()  const = 0;
+
+        virtual int GetCols() const = 0;
+        virtual int GetRows() const = 0;
+        virtual float GetSizeCell() const = 0;
 };

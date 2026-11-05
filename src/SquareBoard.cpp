@@ -3,7 +3,7 @@
 #include <optional>
 
 
-SquareBoard::SquareBoard(int sizeCell, sf::Vector2f pointDraw,int cols,int rows,int mineCount)
+SquareBoard::SquareBoard(float sizeCell, sf::Vector2f pointDraw,int cols,int rows,int mineCount)
     : sizeCell(sizeCell), pointDraw(pointDraw), Board(cols,rows,mineCount) {}
 
 std::vector<CellPoint> SquareBoard::GetNeighbors(const CellPoint& cellPoint)
@@ -17,7 +17,7 @@ std::vector<CellPoint> SquareBoard::GetNeighbors(const CellPoint& cellPoint)
             x<=(cellPoint.x+1>=this->cols?this->cols-1:cellPoint.x+1);
             x++)
         {
-            if (x!=cellPoint.x && y!=cellPoint.y)
+            if (x!=cellPoint.x || y!=cellPoint.y)
             {res.push_back(CellPoint(x,y));}
         }
     }   
@@ -63,3 +63,7 @@ int SquareBoard::GetFlaggedCount() const
     { if (cell.GetState() == CellState::Flagged) count++; }
     return count;
 }
+
+
+float SquareBoard::GetSizeCell() const
+{ return this->sizeCell; }

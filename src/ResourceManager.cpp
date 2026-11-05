@@ -61,7 +61,24 @@ bool ResourceManager::LoadImages()
         !this->images[ImageID::OL_BtnBackToHome].loadFromFile("../assets/images/OL_BtnBackToHome.png")
     ) {std::cerr<<"Error: load image Overlay\n"; return false;}
     
-    // this->images[ImageID::].loadFromFile("../assets/images/.png");
+    /*Load ảnh của lõi game*/
+    if (
+        !this->images[ImageID::G_Number1].loadFromFile("../assets/images/G_Number1.png") ||
+        !this->images[ImageID::G_Number2].loadFromFile("../assets/images/G_Number2.png") ||
+        !this->images[ImageID::G_Number3].loadFromFile("../assets/images/G_Number3.png") ||
+        !this->images[ImageID::G_Number4].loadFromFile("../assets/images/G_Number4.png") ||
+        !this->images[ImageID::G_Number5].loadFromFile("../assets/images/G_Number5.png") ||
+        !this->images[ImageID::G_Number6].loadFromFile("../assets/images/G_Number6.png") ||
+        !this->images[ImageID::G_Number7].loadFromFile("../assets/images/G_Number7.png") ||
+        !this->images[ImageID::G_Flag].loadFromFile("../assets/images/G_Flag.png") ||
+        !this->images[ImageID::G_Bomb].loadFromFile("../assets/images/G_Bomb.png") ||
+        !this->images[ImageID::G_Hidded].loadFromFile("../assets/images/G_Hidded.png") ||
+        !this->images[ImageID::G_Openned].loadFromFile("../assets/images/G_Openned.png") ||
+        !this->images[ImageID::G_Question].loadFromFile("../assets/images/G_Bomb.png") // tạm thời để bomb vì chưa vẽ
+    ) {std::cerr<<"Error: load image CoreGame\n"; return false;}
+
+    
+    // !this->images[ImageID::].loadFromFile("../assets/images/.png");
     return true;
 }
 

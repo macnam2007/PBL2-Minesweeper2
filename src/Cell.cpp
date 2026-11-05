@@ -4,9 +4,9 @@ Cell::Cell() {}
 
 bool Cell::OpenCell()
 {
-    if (this->isMine)
+    if (this->isMine || !CanOpenCell())
     {return false;}
-    this->state = CellState::Opened;
+    this->state = CellState::Openned;
     return true;
 }
 
@@ -14,7 +14,7 @@ bool Cell::CanOpenCell() const
 { return (this->state==CellState::Hidden); }
 
 bool Cell::Openned() const
-{ return (this->state==CellState::Opened); }
+{ return (this->state==CellState::Openned); }
 
 int Cell::GetNumber() const
 { return this->number; }

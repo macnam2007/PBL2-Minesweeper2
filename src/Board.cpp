@@ -1,16 +1,22 @@
 #include "../headers/Board.hpp"
 #include <random>
 
-Board::Board(int cols, int rows, int mineCount) : cols(cols), rows(rows), mineCount(mineCount) {}
+Board::Board(int cols, int rows, int mineCount) : cols(cols), rows(rows), mineCount(mineCount)
+{ this->cells.resize(cols * rows); }
 
 Cell* Board::GetCell(const CellPoint& cellPoint)
 {
+    if (cellPoint.x < 0 || cellPoint.x >= this->cols || cellPoint.y < 0 || cellPoint.y >= this->rows)
+        return nullptr;
+
     return &this->cells[cellPoint.y*this->cols + cellPoint.x];
 }
 
 // AURA FARMING ĐOẠN NÀY
 void Board::Generate(const CellPoint& cellPoint)
 {
+    if (this->generated) return;
+
     // lấy vùng lân cận điểm khởi động để không tại mìn tại ô đó
     std::vector<CellPoint> ban = GetNeighbors(cellPoint);
 
@@ -64,8 +70,8 @@ void Board::Generate(const CellPoint& cellPoint)
         
             for (int i=0 ; i<this->cols*this->rows; i++)
             {
-                // nếu ô chưa mở thì bỏ qua
-                if (!this->cells[i].Openned()) continue;
+                // chỉ mở các ô chưa được mở và có trạng thái CellState::Hidden 
+                if (!this->cells[i].Openned() || this->cells[i].GetNumber() == 0) continue;
 
                 // Bước 1: chuẩn bị nguyên liệu
                 std::vector<CellPoint> neighbors = GetNeighbors(CellPoint(i%cols,i/cols));
@@ -127,6 +133,7 @@ void Board::Generate(const CellPoint& cellPoint)
             // cần che màn chơi lại chứ là trả về màn đã giải
             for (int i =0; i<this->cols*this->rows; i++)
             { this->cells[i].ChangeState(CellState::Hidden); }
+            this->generated = true;
             return;
         }
         // Bàn cờ chưa thể giải bằng quy luật trên -> reset cells và làm lại
@@ -174,4 +181,8 @@ void Board::FloodFill(const CellPoint& cellPoint)
     }
 }
 
+int Board::GetCols() const
+{ return this->cols; }
 
+int Board::GetRows() const
+{ return this->rows; }

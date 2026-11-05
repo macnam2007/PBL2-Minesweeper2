@@ -5,6 +5,6 @@ enum class CellState
     Hidden,
     Flagged,
     Questioned,
-    Opened
+    Openned,
 };
 
