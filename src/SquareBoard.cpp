@@ -1,6 +1,8 @@
 #include "../headers/SquareBoard.hpp"
 #include "SFML/System/Vector2.hpp"
 #include <optional>
+#include <fstream>
+#include <iostream>
 
 
 SquareBoard::SquareBoard(float sizeCell, sf::Vector2f pointDraw,int cols,int rows,int mineCount)
@@ -67,3 +69,11 @@ int SquareBoard::GetFlaggedCount() const
 
 float SquareBoard::GetSizeCell() const
 { return this->sizeCell; }
+
+bool SquareBoard::IsWon() const
+{
+    int count =0;
+    for (const Cell cell: this->cells)
+    { if (cell.GetState() != CellState::Openned) count++; }
+    return (count == this->mineCount);
+}

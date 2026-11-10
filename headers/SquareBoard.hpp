@@ -19,4 +19,6 @@ class SquareBoard : public Board
         int GetFlaggedCount()  const override; 
 
         float GetSizeCell() const override;
+        bool IsWon() const override;
+
 };

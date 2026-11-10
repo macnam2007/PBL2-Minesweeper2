@@ -23,4 +23,6 @@ class GameMode
         virtual void RenderEffects(sf::RenderTarget& target) const {}; // vẽ cái những thứ đặc biệt của Mode đang chơi , đè lên Render của GameScreen 
         virtual bool IsBlockingInput() const; // chặn tương tác khi có hiệu ứng đặc biệt (Ong chích khi bị mở trúng ô có ong ở Bee's Hive )
         virtual void OnTick(float deltaTime) {}; // cập nhật thời gian 
+        virtual bool Load(std::istream& input) { return true;};
+        virtual void Save(std::ostream& output) const {};
 };

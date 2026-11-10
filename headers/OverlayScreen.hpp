@@ -32,6 +32,6 @@ class OverlayScreen
         /* kiểm tra sự kiện game */
         void HandleEvent(const sf::Event& event, const sf::Vector2f mousePoint);
 
-        void Update(float deltaTime, sf::Vector2f mousePoint);
+        void Update(sf::Vector2f mousePoint);
         void Render(sf::RenderWindow& window);
 };

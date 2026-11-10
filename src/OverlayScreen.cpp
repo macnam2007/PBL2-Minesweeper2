@@ -62,7 +62,7 @@ void OverlayScreen::HandleEvent(const sf::Event& event, const sf::Vector2f mouse
     { this->buttons[i]->HandleEvent(event, mousePoint); }
 }
 
-void OverlayScreen::Update(float, sf::Vector2f mousePoint)
+void OverlayScreen::Update(sf::Vector2f mousePoint)
 {
     for (int i=0; i<this->buttons.size(); i++)
     { this->buttons[i]->Update(mousePoint); }

@@ -21,5 +21,15 @@ class Board : public AbstractBoard
 
         int GetCols() const override;
         int GetRows() const override;
+        bool IsGenerated() const override;
+        void ResetBoard() override;
 
+        OpenResult OpenAt(const CellPoint& cellPoint) override;   // click trái vào ô Hidden
+        OpenResult OpenChord(const CellPoint& cellPoint);    // click trái vào ô đã mở
+        void ToggleMark(const CellPoint& cellPoint) override;     // click phải
+
+        bool CheckWin();
+
+        bool Load(std::istream& input, float& time) override;
+        void Save(std::ostream& output) const override;
 };

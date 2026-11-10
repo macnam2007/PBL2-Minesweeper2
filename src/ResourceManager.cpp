@@ -50,9 +50,8 @@ bool ResourceManager::LoadImages()
     /*Load ảnh của trang Game*/
     if (
         !this->images[ImageID::G_Bg].loadFromFile("../assets/images/G_Bg.png")||
-        !this->images[ImageID::G_BtnPause].loadFromFile("../assets/images/G_BtnPause.png")||
-        !this->images[ImageID::G_BtnReset].loadFromFile("../assets/images/G_BtnReset.png")
-    ) {std::cerr<<"Error: load image Nút Pause và Nút Reset\n"; return false;}
+        !this->images[ImageID::G_BtnPause].loadFromFile("../assets/images/G_BtnPause.png")
+    ) {std::cerr<<"Error: load image BackGround và Nút Pause\n"; return false;}
     
     /*Load ảnh của Overlay*/
     if (
@@ -70,14 +69,20 @@ bool ResourceManager::LoadImages()
         !this->images[ImageID::G_Number5].loadFromFile("../assets/images/G_Number5.png") ||
         !this->images[ImageID::G_Number6].loadFromFile("../assets/images/G_Number6.png") ||
         !this->images[ImageID::G_Number7].loadFromFile("../assets/images/G_Number7.png") ||
+        !this->images[ImageID::G_Number8].loadFromFile("../assets/images/G_Number8.png") ||
         !this->images[ImageID::G_Flag].loadFromFile("../assets/images/G_Flag.png") ||
         !this->images[ImageID::G_Bomb].loadFromFile("../assets/images/G_Bomb.png") ||
         !this->images[ImageID::G_Hidded].loadFromFile("../assets/images/G_Hidded.png") ||
         !this->images[ImageID::G_Openned].loadFromFile("../assets/images/G_Openned.png") ||
-        !this->images[ImageID::G_Question].loadFromFile("../assets/images/G_Bomb.png") // tạm thời để bomb vì chưa vẽ
+        !this->images[ImageID::G_Question].loadFromFile("../assets/images/G_Bomb.png") ||// tạm thời để bomb vì chưa vẽ
+        !this->images[ImageID::G_BtnResetLosed].loadFromFile("../assets/images/G_BtnResetLosed.png") ||
+        !this->images[ImageID::G_BtnResetNormal].loadFromFile("../assets/images/G_BtnResetNormal.png") ||
+        !this->images[ImageID::G_BtnResetWon].loadFromFile("../assets/images/G_BtnResetWon.png") ||
+        !this->images[ImageID::G_Dead].loadFromFile("../assets/images/G_Dead.png") ||
+        !this->images[ImageID::G_Wrong].loadFromFile("../assets/images/G_Wrong.png") ||
+        !this->images[ImageID::G_Panel].loadFromFile("../assets/images/G_Panel.png")
     ) {std::cerr<<"Error: load image CoreGame\n"; return false;}
 
-    
     // !this->images[ImageID::].loadFromFile("../assets/images/.png");
     return true;
 }

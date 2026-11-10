@@ -1,19 +1,15 @@
 #include "../headers/Timer.hpp"
 
+void Timer::SetTime(float time)
+{ this->timeElapsed = time; }
 
-void Timer::Start()
+void Timer::Reset()
 {
-    this->timeElapsed = 0.f;
-    this->running = true;
+    this->timeElapsed = 0;
 }
-void Timer::Pause()
-{ this->running = false; }
-
-void Timer::Resume()
-{ this->running = true; }
 
 void Timer::Update(float deltaTime)
-{ if (this->running) this->timeElapsed += deltaTime; }
+{ this->timeElapsed += deltaTime; }
 
 float Timer::GetTime() const
 { return this->timeElapsed; }

@@ -47,7 +47,6 @@ enum class ImageID {
     // Trang Game <Các nút hiện không có effect>
     G_Bg,
     G_BtnPause,
-    G_BtnReset,
     // Trang Overlay <Các nút hiện không có effect>
     OL_Bg,
     OL_BtnContinue,
@@ -62,11 +61,18 @@ enum class ImageID {
     G_Number5,
     G_Number6,
     G_Number7,
+    G_Number8,
     G_Flag,
     G_Bomb,
     G_Hidded,
     G_Openned,
     G_Question,
+    G_BtnResetNormal,
+    G_BtnResetLosed,
+    G_BtnResetWon,
+    G_Dead,
+    G_Wrong,
+    G_Panel,
 
     /* VÙNG CỦA MOD SA MẠC (Ghi đè lên lõi game) */
 

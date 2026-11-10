@@ -34,7 +34,7 @@ void Board::Generate(const CellPoint& cellPoint)
         int count = 0;
         std::vector<bool> visited(this->cols * this->rows, false);
         // đánh dấu ô đã không được đặt mìn
-        for (const CellPoint point : ban)
+        for (const CellPoint& point : ban)
         { visited[point.y*this->cols+point.x] = true; }
         // đặt mìn
         while(count < this->mineCount)
@@ -48,7 +48,7 @@ void Board::Generate(const CellPoint& cellPoint)
                 this->cells[y*this->cols+x].MineToggle();
                 // đánh số cho các ô lân cận
                 std::vector<CellPoint> neighbors = GetNeighbors(CellPoint(x,y));
-                for (const CellPoint point : neighbors)
+                for (const CellPoint& point : neighbors)
                 {
                     int i = point.y*this->cols+point.x;
                     this->cells[i].SetNumber(this->cells[i].GetNumber() + 1);
@@ -62,6 +62,13 @@ void Board::Generate(const CellPoint& cellPoint)
         // mở ô đầu tiên
         this->cells[cellPoint.y*this->cols+cellPoint.x].OpenCell();
         FloodFill(cellPoint);
+
+        // ngay click đầu tiên mà win thì làm lại bàn mới
+        if (IsWon())
+        {
+            ResetBoard();
+            continue;
+        }
 
         bool checkEnd = false;
         while (!checkEnd)
@@ -77,7 +84,7 @@ void Board::Generate(const CellPoint& cellPoint)
                 std::vector<CellPoint> neighbors = GetNeighbors(CellPoint(i%cols,i/cols));
                 int hiddenCount = 0;
                 int flaggedCount = 0;
-                for (const CellPoint point : neighbors)
+                for (const CellPoint& point : neighbors)
                 {
                     int i = point.y*this->cols+point.x;
                     if (this->cells[i].GetState() == CellState::Hidden)
@@ -91,7 +98,7 @@ void Board::Generate(const CellPoint& cellPoint)
                 // đặt cờ lên các ô bị che 
                 if (hiddenCount+flaggedCount == this->cells[i].GetNumber())
                 {
-                    for (const CellPoint point : neighbors)
+                    for (const CellPoint& point : neighbors)
                     {
                         int k = point.y*this->cols+point.x;
                         if (this->cells[k].GetState() == CellState::Hidden)
@@ -106,12 +113,13 @@ void Board::Generate(const CellPoint& cellPoint)
                 // mở các ô bị che còn lại
                 if (flaggedCount == this->cells[i].GetNumber())
                 {
-                    for (const CellPoint point : neighbors)
+                    for (const CellPoint& point : neighbors)
                     {
                         int i = point.y*this->cols+point.x;
                         if (this->cells[i].GetState() == CellState::Hidden)
                         { 
                             this->cells[i].OpenCell();
+                            this->countClickTB++;
                             if (this->cells[i].GetNumber() == 0)
                             FloodFill(point);
                             checkEnd = false;
@@ -137,10 +145,7 @@ void Board::Generate(const CellPoint& cellPoint)
             return;
         }
         // Bàn cờ chưa thể giải bằng quy luật trên -> reset cells và làm lại
-        else {
-            for (int i =0; i<this->cols*this->rows; i++)
-            { this->cells[i].Reset(); }
-        }
+        else ResetBoard();
     }
 }
 
@@ -149,20 +154,21 @@ void Board::FloodFill(const CellPoint& cellPoint)
     // mở cái ô cellPoint này đã đc mở từ trước và number = 0
 
     std::vector<bool> visited(this->cols * this->rows, false);
+    visited[cellPoint.y*this->cols + cellPoint.x] = true;
     std::vector<CellPoint> pointNeedOpen;
     std::vector<CellPoint> save;
     pointNeedOpen.push_back(cellPoint);
     while (pointNeedOpen.size() > 0)
     {
-        for (const CellPoint point1 : pointNeedOpen)
+        for (const CellPoint& point1 : pointNeedOpen)
         {
             std::vector<CellPoint> neighbors = GetNeighbors(point1);
-            for (const CellPoint point2 : neighbors)
+            for (const CellPoint& point2 : neighbors)
             {
                 int i = point2.y*this->cols+point2.x;
 
                 // hàng xóm đã ghé trước đó thì bỏ qua
-                if (visited[i]) continue;
+                if (visited[i] || !this->cells[i].CanOpenCell()) continue;
 
                 // đánh dấu đã ghé
                 visited[i] = true;
@@ -186,3 +192,295 @@ int Board::GetCols() const
 
 int Board::GetRows() const
 { return this->rows; }
+
+
+void Board::ResetBoard()
+{
+    for (int i =0; i<this->cols*this->rows; i++)
+    { this->cells[i].Reset(); }
+    SetEnded(false);
+    SetLosed(false);
+    this->generated = false;
+    this->cellPointDead.clear(); // xóa các ô chứa mìn đẳm ở ván trước
+    this->countClickTB = 0;
+    this->countClick = 0;
+}
+
+bool Board::IsGenerated() const
+{ return this->generated; }
+
+OpenResult Board::OpenAt(const CellPoint& cellPoint)
+{
+    Cell* cell = &this->cells[cellPoint.y*this->cols+cellPoint.x];
+    // Ô cần mở đang được đánh dấu
+    if(
+        cell->GetState() == CellState::Flagged ||
+        cell->GetState() == CellState::Questioned
+    ) { return OpenResult::Blocked; }
+
+    // Ô cần mở đang đã được mở -> mở các ô lân cận
+    if ( cell->GetState() == CellState::Openned)
+    { return OpenChord(cellPoint); }
+
+    // Mở ô lần đầu tiên
+    Generate(cellPoint);
+
+
+    if (cell->OpenCell())
+    {
+        if (cell->GetNumber() == 0) { FloodFill(cellPoint); }
+        if (CheckWin()) { return OpenResult::Win; }
+        return OpenResult::Safe;
+    }
+    else
+    {
+        SetEnded(true);
+        SetLosed(true);
+        AddCellPointDead(cellPoint);
+        return OpenResult::Lose;
+    }
+}
+
+OpenResult Board::OpenChord(const CellPoint& cellPoint)
+{
+    Cell* cellCenter = &this->cells[cellPoint.y*this->cols + cellPoint.x];
+
+    // nếu click vào ô rỗng
+    if (cellCenter->GetNumber() == 0)
+    { return OpenResult::Blocked; }
+
+    // đếm số ô đánh dấu trong 8 ô xung quanh
+    std::vector<CellPoint> neighbors = GetNeighbors(cellPoint);
+    int count = 0;
+    for (const CellPoint& point : neighbors)
+    {
+        Cell* cell = &this->cells[point.y*this->cols+point.x];
+        if (cell->GetState() == CellState::Flagged) { count ++ ;}
+        else if (cell->GetState() == CellState::Questioned) { return OpenResult::Blocked; }
+    }
+
+    if (cellCenter->GetNumber() != count)
+    { return OpenResult::Safe; }
+
+    // khi number của ô trung tâm bằng số cờ xung quanh thì mở các ô còn lại
+    else
+    {
+        // Kiểm tra có đẳm mìn không
+        for (const CellPoint& point : neighbors)
+        {
+            Cell* cell = &this->cells[point.y*this->cols+point.x];
+            if (cell->GetState() == CellState::Hidden && cell->CheckIsMine())
+            {
+                SetEnded(true);
+                SetLosed(true);
+                AddCellPointDead(point);
+            }
+        }
+        //TH : đẳm mìn trả về Lose
+        if (IsEnded() && IsLosed())
+        { return OpenResult::Lose; }
+        //TH : không đẳm mìn thì mở các ô
+        for (const CellPoint& point : neighbors)
+        {
+            Cell* cell = &this->cells[point.y*this->cols+point.x];
+            if (cell->GetState() == CellState::Hidden)
+            {
+                cell->OpenCell();
+                // ô vừa mở có number = 0
+                if (cell->GetNumber() == 0)
+                { FloodFill(point); }
+            }
+        }
+    }
+    if (CheckWin()) { return OpenResult::Win; }
+    return OpenResult::Safe;
+}
+
+void Board::ToggleMark(const CellPoint& cellPoint)
+{
+    if (this->generated == false) { return; }
+    Cell* cell = &this->cells[cellPoint.y*this->cols + cellPoint.x];
+
+    switch (cell->GetState())
+    {
+        case CellState::Openned:
+            break;
+        case CellState::Hidden:
+            cell->ChangeState(CellState::Flagged);
+            break;
+        case CellState::Flagged:
+            cell->ChangeState(CellState::Questioned);
+            break;
+        case CellState::Questioned:
+            cell->ChangeState(CellState::Hidden);
+            break;
+    }
+}
+
+bool Board::CheckWin()
+{
+    if (IsWon())
+    {
+        SetEnded(true);
+        SetLosed(false);
+        return true;
+    }
+    return false;
+}
+
+bool Board::Load(std::istream& input, float& time) 
+{
+    /* Mô tả file data */
+    //1) dòng đầu tiên "rows cols minesCount time generated ended losed"
+    //2) rows dòng tiếp theo : chứa số của ô và ô mìn có giá trị là 9
+    //3) rows dòng tiếp theo : chứa trạng thái của ô
+    //4) dòng tiếp theo      : deadCount 
+    //5) deadCount dòng tiếp theo : chứa tọa độ x,y của ô có mìn đã đẳm
+
+
+
+    //1) ---------------
+    int rows,cols,mineCount,timeSave,generated,ended,losed;
+    if (!(input >> rows >> cols >> mineCount >> timeSave >> generated >> ended >> losed))
+    { return false; }
+
+    // kiểm tra dữ liệu
+    if (rows != this->rows || cols != this->cols || mineCount != this->mineCount || timeSave<0)
+    { return false; }
+    time = timeSave;
+
+    auto isBool = [](int v) { return v == 0 || v == 1; }; // lambda
+    if (!isBool(generated) || !isBool(ended) || !isBool(losed)) return false;
+
+    // lưu tạm dữ liệu vào đây
+    std::vector<Cell> loaded1(this->cells.size());
+
+    //2) ---------------
+    for (Cell& cell : loaded1)
+    {
+        int number;
+        if (!(input >> number) || number <0 || number>9)
+        { return false; }
+        
+        if (number == 9)
+        { cell.MineToggle(); }
+
+        else { cell.SetNumber(number); }
+    }
+
+    //3) -----------------
+    for (Cell& cell : loaded1)
+    {
+        int state;
+        if (!(input >> state) || state <0 || state>3)
+        { return false; }
+        switch(state)
+        {
+            case 0:
+                cell.ChangeState(CellState::Openned);
+                break;
+            case 1:
+                cell.ChangeState(CellState::Hidden);
+                break;
+            case 2:
+                cell.ChangeState(CellState::Flagged);
+                break;
+            case 3:
+                cell.ChangeState(CellState::Questioned);
+                break;
+        }
+    }
+
+    // kiểm tra dữ liệu
+    int mines = 0;
+    for (const Cell& cell : loaded1){ if (cell.CheckIsMine()) mines ++; }
+
+    if (generated && mines != this->mineCount)
+    { return false; }
+    
+    if (!generated && mines != 0)
+    { return false;}
+
+
+    //4) ---------------
+    int deadCount;
+    if (!(input >> deadCount) || deadCount<0 || deadCount >4)
+    { return false; }
+
+    // lưu tạm dữ liệu vào đây
+    std::vector<CellPoint> loaded2;
+    for (int i=0; i<deadCount; i++)
+    {
+        int x,y;
+        if (!(input >> x >> y) || x<0 || y<0 || x>=this->cols || y>=this->rows)
+        { return false; }
+        loaded2.push_back(CellPoint(x,y));
+    }
+
+    // load dữ liệu vào Board 
+    this->cells = std::move(loaded1);
+    this->cellPointDead = std::move(loaded2);
+    this->generated = generated;
+    this->ended = ended;
+    this->losed = losed;
+
+    return true;
+}
+
+void Board::Save(std::ostream& output) const
+{
+    /* Mô tả file data */
+    //1) dòng đầu tiên "rows cols minesCount generated ended losed"
+    //2) rows dòng tiếp theo : chứa số của ô và ô mìn có giá trị là 9
+    //3) rows dòng tiếp theo : chứa trạng thái của ô
+    //4) dòng tiếp theo      : deadCount 
+    //5) deadCount dòng tiếp theo : chứa tọa độ x,y của ô có mìn đã đẳm
+
+
+    //1) ---------------
+    output << this->rows << " " << this->cols << " " << this->mineCount << " " << this->generated << " " << this->ended << " " << this->losed <<"\n";
+
+    //2) ---------------
+    for (int y =0; y<this->rows; y++)
+    {
+        for (int x =0; x<this->cols; x++)
+        {
+            output << (this->cells[y*this->cols+x].CheckIsMine() ? 9 : this->cells[y*this->cols+x].GetNumber());
+            output << (x<this->cols-1 ? " " : "\n");
+        }
+    }
+
+    //3) ---------------
+    for (int y =0; y<this->rows; y++)
+    {
+        for (int x =0; x<this->cols; x++)
+        {
+            switch (this->cells[y*this->cols+x].GetState())
+            {
+                case CellState::Openned:
+                    output << 0;
+                    break;
+                case CellState::Hidden:
+                    output << 1;
+                    break;
+                case CellState::Flagged:
+                    output << 2;
+                    break;
+                case CellState::Questioned:
+                    output << 3;
+                    break;
+            }
+            output << (x<this->cols-1 ? " " : "\n");
+        }
+    }
+
+    //4) --------------
+    int deadCount = this->cellPointDead.size();
+    output << deadCount <<"\n";
+
+    //5) -------------
+    for (const CellPoint& point : this->cellPointDead)
+    {
+        output << point.x << " " << point.y << "\n";
+    }
+}

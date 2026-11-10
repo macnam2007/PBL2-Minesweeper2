@@ -26,4 +26,4 @@ bool GameMode::CanHold(CellPoint) const
 
 // game dò mìn mặc định không có hiệu ứng nên k chặn tương tác
 bool GameMode::IsBlockingInput() const
-{ return false; }
+{ return false; } 

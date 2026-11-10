@@ -4,7 +4,7 @@ Cell::Cell() {}
 
 bool Cell::OpenCell()
 {
-    if (this->isMine || !CanOpenCell())
+    if (this->isMine)
     {return false;}
     this->state = CellState::Openned;
     return true;
