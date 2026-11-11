@@ -168,6 +168,9 @@ void Board::FloodFill(const CellPoint& cellPoint)
 
                 // hàng xóm đã ghé trước đó thì bỏ qua
                 if (visited[i] || !this->cells[i].CanOpenCell()) continue;
+                
+                // hỏi tổng đài ô này có được phép tương tác không
+                if (this->validator && !this->validator(point2)) continue;
 
                 // đánh dấu đã ghé
                 visited[i] = true;
@@ -226,6 +229,7 @@ OpenResult Board::OpenAt(const CellPoint& cellPoint)
     if (cell->GetNumber() == 0)
     {
         cell->OpenCell();
+
         FloodFill(cellPoint);
         if (CheckWin())
         {
@@ -263,7 +267,8 @@ OpenResult Board::OpenChord(const CellPoint& cellPoint)
     {
         Cell* cell = &this->cells[point.y*this->cols+point.x];
         if (cell->GetState() == CellState::Flagged) { count ++ ;}
-        else if (cell->GetState() == CellState::Questioned) { return OpenResult::Blocked; }
+        // vì validator xét Questioned vẫn true nên phải kiểm tra lần nx
+        if (cell->GetState() == CellState::Questioned) { return OpenResult::Blocked; }
     }
 
     if (cellCenter->GetNumber() != count)
@@ -275,7 +280,11 @@ OpenResult Board::OpenChord(const CellPoint& cellPoint)
         // Kiểm tra có đẳm mìn không
         for (const CellPoint& point : neighbors)
         {
+            // nếu mọc cây thì k đc ktra ô này
+            if (this->validator && !this->validator(point)) {continue; }
+
             Cell* cell = &this->cells[point.y*this->cols+point.x];
+            
             if (cell->GetState() == CellState::Hidden && cell->CheckIsMine())
             {
                 SetEnded(true);
@@ -289,6 +298,9 @@ OpenResult Board::OpenChord(const CellPoint& cellPoint)
         //TH : không đẳm mìn thì mở các ô
         for (const CellPoint& point : neighbors)
         {
+            // nếu mọc cây thì k đc mở ô này
+            if (this->validator && !this->validator(point)) {continue; }
+
             Cell* cell = &this->cells[point.y*this->cols+point.x];
             if (cell->GetState() == CellState::Hidden)
             {
@@ -360,9 +372,6 @@ bool Board::Load(std::istream& input, float& time)
     // kiểm tra dữ liệu
     if (rows != this->rows || cols != this->cols || mineCount != this->mineCount || timeSave<0 || countClick <0 || countClick > countClickTB || countClickTB <0 || countClickTB>this->cols*this->rows-this->mineCount)
     { std::cout<<"vitri2"; return false; }
-    time = timeSave;
-    this->countClick = countClick;
-    this->countClickTB = countClickTB;
 
     auto isBool = [](int v) { return v == 0 || v == 1; }; // lambda
     if (!isBool(generated) || !isBool(ended) || !isBool(losed))
@@ -433,7 +442,7 @@ bool Board::Load(std::istream& input, float& time)
         loaded2.push_back(CellPoint(x,y));
     }
 
-    // load dữ liệu vào Board 
+    /*Vùng xác nhận dữ liệu*/
     this->cells = std::move(loaded1);
     this->cellPointDead = std::move(loaded2);
     this->generated = generated;

@@ -1,15 +1,17 @@
 #include "AbstractBoard.hpp"
-#include "CellPoint.hpp"
 #include "GameMode.hpp"
 #include "SFML/Graphics/RenderTarget.hpp"
 #include "SFML/Graphics/Texture.hpp"
 #include <map>
 
+#define CK_START 8
+#define CK_STOP 15
+
 class DesertMode : public GameMode
 {       
     private:
         float timer = 0; // số giây đã trôi qua từ lần sự kiện trc
-        float nextInterval = 8; // chu kỳ cho lần tiếp theo random(8,15), số ô bị che cũng random
+        float nextInterval = CK_START; // chu kỳ cho lần tiếp theo random(8,15), số ô bị che cũng random
         std::map<CellPoint,float> sands;
         const sf::Texture* sandTexture;
     public:

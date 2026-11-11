@@ -1,6 +1,5 @@
 #include "../headers/DesertMode.hpp"
-#include "SFML/Graphics/RenderTarget.hpp"
-#include "SFML/Graphics/Texture.hpp"
+#include <iostream>
 #include <random>
 
 DesertMode::DesertMode(AbstractBoard* board, Player* player, const sf::Texture& sandTexture)
@@ -28,17 +27,15 @@ OpenResult DesertMode::CheckCellOpen(CellPoint cellPoint) const
 }
 
 bool DesertMode::NeedHold(CellPoint cellPoint) const
-{
-    return this->sands.count(cellPoint) > 0;
-}
+{ return this->sands.count(cellPoint) > 0; }
 
 void DesertMode::OnTick(float deltaTime)
 {
     // tạo random
     static std::random_device rand;
     static std::mt19937 gen(rand());
-    static std::uniform_int_distribution<int> dist1(8, 15); // thời gian tiếp theo
-    static std::uniform_int_distribution<int> dist2(0, 3);  // số mìn
+    static std::uniform_int_distribution<int> dist1(CK_START, CK_STOP); // thời gian tiếp theo
+    static std::uniform_int_distribution<int> dist2(0, 3);  // số cát
     this->timer += deltaTime;
     if (timer >= nextInterval)
     {
@@ -61,18 +58,16 @@ void DesertMode::OnTick(float deltaTime)
         int count = dist2(gen);
         count = (count<=openCells.size())?count:openCells.size();
 
-        // .. tạo cát 
-        while (count)
+        // chọn ra em may mắn
+        for (int i=0; i<count; i++)
         {
-            count--;
             std::uniform_int_distribution<int> dist3(0,openCells.size()-1);
-            // chọn ra 1 em may mắn
             int k = dist3(gen);
             CellPoint select = openCells[k];
             openCells.erase(openCells.begin() + k); // xóa vị trí của ô vừa lấy
 
             // đặt cát
-            this->sands[select] = 2; // thời gian cần giữ chuột để xóa cát
+            this->sands[select] = 1.f; // thời gian cần giữ chuột để xóa cát
         }
     }
 }
@@ -118,7 +113,46 @@ void DesertMode::Reset()
 }
 
 bool DesertMode::Load(std::istream& input)
-{ return true;}
+{
+    /* Mô tả file data */
+    // .. Thông tin của Board
+    //6) timer nextInterval sandCount
+    //7) sandCount dòng tiếp theo, mỗi dòng chứa : x y time
+
+
+    //6) -----------------
+    float timer, nextInterval, sandCount;
+    if (!(input >> timer >> nextInterval >> sandCount))
+    { std::cout<<"vitri1"; return false; }
+    // kiểm tra dữ liệu
+    if (timer <0 || nextInterval < CK_START || nextInterval >CK_STOP)
+    { std::cout<<"vitri2"; return false; }
+
+    //7) -----------------
+    std::map<CellPoint,float> loaded;
+    for (int i=0; i<sandCount; i++)
+    {
+        int x,y;
+        float time;
+        if (!(input >> x >> y >> time))
+        { std::cout<<"vitri3"; return false; }
+        // kiểm tra dữ liệu
+        if (x<0 || x>=this->board->GetCols() || y<0 || y>=this->board->GetRows())
+        { std::cout<<"vitri4"; return false; }
+        loaded[CellPoint(x,y)] = time;
+    }
+
+    /*Vùng xác nhận dữ liệu*/
+    this->timer = timer;
+    this->nextInterval = nextInterval;
+    this->sands = loaded;
+    
+    return true;
+}
 
 void DesertMode::Save(std::ostream& output) const
-{}
+{
+    output << this->timer << " " << nextInterval << " " << this->sands.size() << "\n";
+    for (const auto& [point,time] : this->sands)
+    { output << point.x << " " << point.y << " " << time << "\n"; }
+}

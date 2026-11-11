@@ -5,7 +5,9 @@
 #include "SFML/Window/Event.hpp"
 #include "../headers/BasicMode.hpp"
 #include "../headers/DesertMode.hpp"
+#include "../headers/JungleMode.hpp"
 #include "../headers/SquareBoard.hpp"
+#include <cstddef>
 #include <optional>
 #include <string>
 
@@ -298,7 +300,11 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint, fl
                 {
                     if (this->mode->NeedHold(point))
                     { this->CellHolding = point;}
-                    else { this->board->ToggleMark(point); }
+                    else
+                    {
+                        if (this->mode->CanInteract(point))
+                        { this->board->ToggleMark(point); }
+                    }
                 }
             }
         }
@@ -359,6 +365,12 @@ void GameScreen::CreateBoard()
 
 void GameScreen::CreateMode()
 {
+    if (this->board) // :))) do thằng Jungle mà tất cả phải đồng bộ bằng cách thêm Validator
+    {
+        this->board->SetValidator([this](CellPoint point) {
+            return this->mode->CheckCellOpen(point) != OpenResult::Blocked; // true là đc phép tương tác
+        });
+    }
     // vì board lưu trong unique_ptr nền board.get() lấy AbstractBoard*
     switch(this->mapID)
     {
@@ -367,10 +379,10 @@ void GameScreen::CreateMode()
             break;
         
         case MapID::Desert:
-            this->mode = std::make_unique<DesertMode>(this->board.get(), &this->player,this->game->GetResources().GetImage(ImageID::G_Wrong)); // sài tạm
+            this->mode = std::make_unique<DesertMode>(this->board.get(), &this->player,this->game->GetResources().GetImage(ImageID::G_Sand));
             break;
         case MapID::Jungle:
-            //.. chưa làm
+            this->mode = std::make_unique<JungleMode>(this->board.get(), &this->player,this->game->GetResources().GetImage(ImageID::G_Root));
             break;
         case MapID::BeeHive:
             //.. chưa làm

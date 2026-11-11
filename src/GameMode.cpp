@@ -17,7 +17,7 @@ OpenResult GameMode::CheckCellOpen(CellPoint cellPoint) const
 }
 
 // game dò mìn mặc định không có tương tác đặc biệt nên trả về true
-bool GameMode::CanInteract(CellPoint)
+bool GameMode::CanInteract(CellPoint) const
 { return true; }
 
 // game dò mìn mặc định không có tương tác giữ phim

@@ -75,8 +75,9 @@ enum class ImageID {
     G_Panel,
 
     /* VÙNG CỦA MOD SA MẠC (Ghi đè lên lõi game) */
-
+    G_Sand,
     /* VÙNG CỦA MOD RỪNG RẬM (Ghi đè lên lõi game)*/
+    G_Root,
 
 };
 

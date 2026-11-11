@@ -14,12 +14,11 @@ class GameMode
         AbstractBoard* board;
         Player* player;
 
-
     public:
         GameMode(AbstractBoard*, Player*);
         virtual  ~GameMode();
         virtual OpenResult CheckCellOpen(CellPoint cellPoint) const = 0; // trả về tình trạng mở ô 
-        virtual bool CanInteract(CellPoint cellPoint); // chặn tương tác khi ô đó có rễ cây (Mode:jungle)
+        virtual bool CanInteract(CellPoint cellPoint) const; // chặn tương tác khi ô đó có rễ cây (Mode:jungle)
         virtual bool NeedHold(CellPoint cellPoint) const; // khi ô cần có tương tác giữ phím thì trả về true vd (cát phủ, rễ mọc)
         virtual void OnTick(float deltaTime) {}; // cập nhật thời gian 
         virtual void OnLeftHold(CellPoint cellPoint, float deltaTime) {}; // khi đã giữ n giây thì dùng hàm này thực hiện lệnh cần thiết

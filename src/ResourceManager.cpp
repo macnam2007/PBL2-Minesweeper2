@@ -123,7 +123,8 @@ bool ResourceManager::LoadImagesBoard(MapID map)
                 !this->images[ImageID::G_Question].loadFromFile("../assets/images/G_Basic_Question.png") ||
                 !this->images[ImageID::G_Dead].loadFromFile("../assets/images/G_Basic_Dead.png") ||
                 !this->images[ImageID::G_Wrong].loadFromFile("../assets/images/G_Basic_Wrong.png") ||
-                !this->images[ImageID::G_Panel].loadFromFile("../assets/images/G_Basic_Panel.png")
+                !this->images[ImageID::G_Panel].loadFromFile("../assets/images/G_Basic_Panel.png") ||
+                !this->images[ImageID::G_Sand].loadFromFile("../assets/images/G_Basic_Wrong.png") // này chưa có nên dùng tạm Wrong của Basic
             ) {std::cerr<<"Error: load image CoreGame\n"; return false;}
             break;
         }
@@ -137,6 +138,7 @@ bool ResourceManager::LoadImagesBoard(MapID map)
             //Load các ảnh của game
             if (
                 !this->images[ImageID::G_Hidded].loadFromFile("../assets/images/G_Jungle_Hidded.png") ||
+                !this->images[ImageID::G_Openned].loadFromFile("../assets/images/G_Jungle_Openned.png") ||
                 !this->images[ImageID::G_Number1].loadFromFile("../assets/images/G_Jungle_Number1.png") ||
                 !this->images[ImageID::G_Number2].loadFromFile("../assets/images/G_Jungle_Number2.png") ||
                 !this->images[ImageID::G_Number3].loadFromFile("../assets/images/G_Jungle_Number3.png") ||
@@ -145,16 +147,13 @@ bool ResourceManager::LoadImagesBoard(MapID map)
                 !this->images[ImageID::G_Number6].loadFromFile("../assets/images/G_Jungle_Number6.png") ||
                 !this->images[ImageID::G_Number7].loadFromFile("../assets/images/G_Jungle_Number7.png") ||
                 !this->images[ImageID::G_Number8].loadFromFile("../assets/images/G_Jungle_Number8.png") ||
-                !this->images[ImageID::G_Flag].loadFromFile("../assets/images/G_Jungle_Flag.png") ||
-                !this->images[ImageID::G_Bomb].loadFromFile("../assets/images/G_Jungle_Bomb.png") ||
-                !this->images[ImageID::G_Openned].loadFromFile("../assets/images/G_Jungle_Openned.png") ||
-                !this->images[ImageID::G_Question].loadFromFile("../assets/images/G_Jungle_Question.png") ||
-                !this->images[ImageID::G_BtnResetLosed].loadFromFile("../assets/images/G_Jungle_BtnResetLosed.png") ||
-                !this->images[ImageID::G_BtnResetNormal].loadFromFile("../assets/images/G_Jungle_BtnResetNormal.png") ||
-                !this->images[ImageID::G_BtnResetWon].loadFromFile("../assets/images/G_Jungle_BtnResetWon.png") ||
-                !this->images[ImageID::G_Dead].loadFromFile("../assets/images/G_Jungle_Dead.png") ||
-                !this->images[ImageID::G_Wrong].loadFromFile("../assets/images/G_Jungle_Wrong.png") ||
-                !this->images[ImageID::G_Panel].loadFromFile("../assets/images/G_Jungle_Panel.png")
+                !this->images[ImageID::G_Flag].loadFromFile("../assets/images/G_Basic_Flag.png") || // từ chỗ này xuoogns sài ké Basic
+                !this->images[ImageID::G_Bomb].loadFromFile("../assets/images/G_Basic_Bomb.png") ||
+                !this->images[ImageID::G_Question].loadFromFile("../assets/images/G_Basic_Question.png") ||
+                !this->images[ImageID::G_Dead].loadFromFile("../assets/images/G_Basic_Dead.png") ||
+                !this->images[ImageID::G_Wrong].loadFromFile("../assets/images/G_Basic_Wrong.png") ||
+                !this->images[ImageID::G_Panel].loadFromFile("../assets/images/G_Basic_Panel.png") ||
+                !this->images[ImageID::G_Root].loadFromFile("../assets/images/G_Jungle_Root.png") // cái này của Jungle chứ k phải sài ké
             ) {std::cerr<<"Error: load image CoreGame\n"; return false;}
             break;
         }
