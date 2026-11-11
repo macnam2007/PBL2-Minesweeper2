@@ -12,7 +12,7 @@ Game::Game()
 {
     this->window.setVerticalSyncEnabled(true);
 
-    if (!this->resource.LoadFont() || !this->resource.LoadImages() ||
+    if (!this->resource.LoadFont() || !this->resource.LoadImagesGlobal() ||
         !this->resource.LoadSounds() || !this->resource.LoadMusic())
     {
         std::cerr << "Không nạp được tài nguyên!!!\n";

@@ -2,13 +2,8 @@
 
 Cell::Cell() {}
 
-bool Cell::OpenCell()
-{
-    if (this->isMine)
-    {return false;}
-    this->state = CellState::Openned;
-    return true;
-}
+void Cell::OpenCell()
+{ this->state = CellState::Openned;}
 
 bool Cell::CanOpenCell() const
 { return (this->state==CellState::Hidden); }

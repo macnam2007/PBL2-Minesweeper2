@@ -2,7 +2,7 @@
 #include <iostream>
 #include <algorithm>
 
-bool ResourceManager::LoadImages()
+bool ResourceManager::LoadImagesGlobal()
 {
     /*Load ảnh của nút Sound và Music*/
     if (
@@ -85,6 +85,11 @@ bool ResourceManager::LoadImages()
 
     // !this->images[ImageID::].loadFromFile("../assets/images/.png");
     return true;
+}
+
+bool ResourceManager::LoadImagesBoard(ImageID id)
+{
+    
 }
 
 bool ResourceManager::LoadSounds()

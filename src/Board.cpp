@@ -58,8 +58,6 @@ void Board::Generate(const CellPoint& cellPoint)
             }
         }
 
-        // kiểm tra có thể giải không
-
         // mở ô đầu tiên
         this->cells[cellPoint.y*this->cols+cellPoint.x].OpenCell();
         FloodFill(cellPoint);
@@ -213,42 +211,28 @@ bool Board::IsGenerated() const
 OpenResult Board::OpenAt(const CellPoint& cellPoint)
 {
     Cell* cell = &this->cells[cellPoint.y*this->cols+cellPoint.x];
-    // Ô cần mở đang được đánh dấu
-    if(
-        cell->GetState() == CellState::Flagged ||
-        cell->GetState() == CellState::Questioned
-    ) { return OpenResult::Blocked; }
-
-    // Ô cần mở đang đã được mở -> mở các ô lân cận
-    if ( cell->GetState() == CellState::Openned)
-    { return OpenChord(cellPoint); }
-
-    // Mở ô lần đầu tiên
+    // mở lần đầu
     Generate(cellPoint);
-
-
-    if (cell->OpenCell())
+    if (cell->GetNumber() == 0)
     {
-        if (cell->GetNumber() == 0) { FloodFill(cellPoint); }
-        if (CheckWin()) { return OpenResult::Win; }
+        FloodFill(cellPoint);
         return OpenResult::Safe;
     }
-    else
-    {
-        SetEnded(true);
-        SetLosed(true);
-        AddCellPointDead(cellPoint);
-        return OpenResult::Lose;
+    else {
+        if (cell->Openned())
+        { return OpenChord(cellPoint); }
+
+        cell->OpenCell();
+        if (CheckWin())
+        { return OpenResult::Win;}
     }
+    
+    return OpenResult::Safe;
 }
 
 OpenResult Board::OpenChord(const CellPoint& cellPoint)
 {
     Cell* cellCenter = &this->cells[cellPoint.y*this->cols + cellPoint.x];
-
-    // nếu click vào ô rỗng
-    if (cellCenter->GetNumber() == 0)
-    { return OpenResult::Blocked; }
 
     // đếm số ô đánh dấu trong 8 ô xung quanh
     std::vector<CellPoint> neighbors = GetNeighbors(cellPoint);
@@ -261,7 +245,7 @@ OpenResult Board::OpenChord(const CellPoint& cellPoint)
     }
 
     if (cellCenter->GetNumber() != count)
-    { return OpenResult::Safe; }
+    { return OpenResult::Blocked; }
 
     // khi number của ô trung tâm bằng số cờ xung quanh thì mở các ô còn lại
     else

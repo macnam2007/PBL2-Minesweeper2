@@ -197,29 +197,20 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
             {
                 CellPoint point = clickedPoint.value();
 
-                if (mousePressed->button == sf::Mouse::Button::Left)
+                // Mode hiện tại có đang cho phép mở ô này hoặc lân cận hay không
+                if (mousePressed->button == sf::Mouse::Button::Left && this->mode->CanInteract(point))
                 {
-                    OpenResult res = this->board->OpenAt(point);
+                    OpenResult res = this->mode->CheckCellOpen(point); // nhận 3 giá trị Safe Lose Blocked
+
+                    if (res == OpenResult::Safe)
+                    {
+                        res = this->board->OpenAt(point);
+                        this->board->UpCountCLick();
+                    }
+
                     // Thiết lập hình ảnh nút reset khi thua/thắng, và PanelResult
                     switch(res)
                     {
-                        case OpenResult::Lose:
-                        {
-                            this->btnReset.UpdateImage(
-                                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
-                                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
-                                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed)
-                            );
-                            this->PanelResult.SetTitle("YOU LOSED");
-                            std::vector<std::string> texts = {
-                            "Time: " + FormatFloatTime(this->timer.GetTime()) +" sec",
-                            "3BV: " + std::to_string(this->board->GetCountClick()) + "/" + std::to_string(this->board->GetCountClickTB()),
-                            "3BV/s: " + std::to_string(this->board->GetCountClick()/this->timer.GetTime()),
-                            "Clicks: " + std::to_string(this->board->GetCountClick())
-                            };
-                            this->PanelResult.SetLines(texts);
-                            break;
-                        }
                         case OpenResult::Win:
                         {
                             this->btnReset.UpdateImage(
@@ -245,9 +236,23 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
                             this->PanelResult.SetLines(texts);
                             break;
                         }
-                        case OpenResult::Safe:
-                            this->board->UpCountCLick();
+                        case OpenResult::Lose:
+                        {
+                            this->btnReset.UpdateImage(
+                                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
+                                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
+                                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed)
+                            );
+                            this->PanelResult.SetTitle("YOU LOSED");
+                            std::vector<std::string> texts = {
+                            "Time: " + FormatFloatTime(this->timer.GetTime()) +" sec",
+                            "3BV: " + std::to_string(this->board->GetCountClick()) + "/" + std::to_string(this->board->GetCountClickTB()),
+                            "3BV/s: " + std::to_string(this->board->GetCountClick()/this->timer.GetTime()),
+                            "Clicks: " + std::to_string(this->board->GetCountClick())
+                            };
+                            this->PanelResult.SetLines(texts);
                             break;
+                        }
                         default: break;
                     }
                 }

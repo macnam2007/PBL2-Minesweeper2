@@ -53,7 +53,7 @@ std::optional<CellPoint> SquareBoard::MouseToCell(const sf::Vector2f& mousePoint
 int SquareBoard::GetMineCount() const
 {
     int count = 0;
-    for (const Cell cell : this->cells)
+    for (const Cell& cell : this->cells)
     { if (cell.CheckIsMine()) count++; }
     return count;
 }
@@ -61,7 +61,7 @@ int SquareBoard::GetMineCount() const
 int SquareBoard::GetFlaggedCount() const
 {
     int count = 0;
-    for (const Cell cell : this->cells)
+    for (const Cell& cell : this->cells)
     { if (cell.GetState() == CellState::Flagged) count++; }
     return count;
 }
@@ -73,7 +73,7 @@ float SquareBoard::GetSizeCell() const
 bool SquareBoard::IsWon() const
 {
     int count =0;
-    for (const Cell cell: this->cells)
+    for (const Cell& cell: this->cells)
     { if (cell.GetState() != CellState::Openned) count++; }
     return (count == this->mineCount);
 }
