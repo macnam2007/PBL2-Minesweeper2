@@ -98,7 +98,7 @@ void Screen::ResetButton()
     { this->buttons[i]->Reset(); }
 }
 
-void Screen::HandleEvent(const sf::Event& event, const sf::Vector2f mousePoint)
+void Screen::HandleEvent(const sf::Event& event, const sf::Vector2f mousePoint, float)
 {
     for (int i=0; i<this->buttons.size(); i++)
     { this->buttons[i]->HandleEvent(event, mousePoint); }

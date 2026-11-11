@@ -42,7 +42,7 @@ void Game::Run()
             if (event->is<sf::Event::Closed>())
                 Quit();
             else
-                this->current->HandleEvent(*event, mouse);
+                this->current->HandleEvent(*event, mouse, this->deltaTime);
         }
         if (!this->running) break; // nếu Quit() chạy thì không cần vẽ và thoát luôn
 

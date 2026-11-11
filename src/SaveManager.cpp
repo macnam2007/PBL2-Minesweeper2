@@ -7,7 +7,7 @@
 
 bool SaveManager::LoadGame(AbstractBoard& board, GameMode& mode, int mapID, int modeID, float& time)
 {
-    std::string nameFile = "../data/" + std::to_string(mapID) + "_" + std::to_string(modeID) + ".txt";
+    std::string nameFile = "../data/board/" + std::to_string(mapID) + "_" + std::to_string(modeID) + ".txt";
     std::ifstream input(nameFile);
 
     if (!input)
@@ -24,7 +24,7 @@ bool SaveManager::LoadGame(AbstractBoard& board, GameMode& mode, int mapID, int 
 
 bool SaveManager::SaveGame(const AbstractBoard* board , const GameMode* mode, int mapID, int modeID, float time)
 {
-    std::string nameFile = "../data/" + std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
+    std::string nameFile = "../data/board/" + std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
     std::ofstream output(nameFile);
     if (!output) { return false;}
     board->Save(output,time);
@@ -34,7 +34,7 @@ bool SaveManager::SaveGame(const AbstractBoard* board , const GameMode* mode, in
 
 bool SaveManager::UpdateRecord(int mapID, int modeID, int score, float time)
 {
-    std::string nameFile = std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
+    std::string nameFile = "../data/record/" + std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
     std::ofstream output(nameFile);
     if (!output) { return false; }
     output << score << "\n" <<time;
@@ -43,7 +43,7 @@ bool SaveManager::UpdateRecord(int mapID, int modeID, int score, float time)
 
 std::optional<Record> SaveManager::GetRecord(int mapID, int modeID)
 {
-    std::string nameFile = std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
+    std::string nameFile = "../data/record/" + std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
     std::ifstream input(nameFile);
     int score;
     float time;

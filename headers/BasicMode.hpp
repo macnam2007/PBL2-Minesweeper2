@@ -9,4 +9,6 @@ class BasicMode : public GameMode
 {
     public:
         BasicMode(AbstractBoard* board, Player* player);
+        ~BasicMode();
+        OpenResult CheckCellOpen(CellPoint cellPoint) const override;
 };

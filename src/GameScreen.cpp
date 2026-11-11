@@ -4,7 +4,10 @@
 #include "SFML/Graphics/RenderWindow.hpp"
 #include "SFML/Window/Event.hpp"
 #include "../headers/BasicMode.hpp"
+#include "../headers/DesertMode.hpp"
 #include "../headers/SquareBoard.hpp"
+#include <optional>
+#include <string>
 
 GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
     : Screen(game), mapID(mapID), modeID(modeID),
@@ -49,15 +52,15 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
     this->btnReset.SetOnClick(
         [this] {
             this->game->GetResources().PlaySound(SoundID::BtnReleased);
-            this->timer.Reset();
             // lệnh thực hiện khi click chuột
+            this->timer.Reset();
+            this->mode->Reset();
             this->btnReset.UpdateImage(
                 this->game->GetResources().GetImage(ImageID::G_BtnResetNormal),
                 this->game->GetResources().GetImage(ImageID::G_BtnResetNormal),
                 this->game->GetResources().GetImage(ImageID::G_BtnResetNormal)
             );
             this->board->ResetBoard();
-            SaveManager::SaveGame(this->board.get(), this->mode.get(), static_cast<int>(this->mapID), static_cast<int>(this->modeID), this->timer.GetTime());
         }
     );
     // Đặt vị trí của ảnh (Gốc của ảnh: góc trên bên trái)
@@ -100,10 +103,9 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
                 this->game->GetResources().GetImage(ImageID::G_BtnResetWon)
             );
             this->PanelResult.SetTitle("YOU WON");
-            int score = 
-            (2*float(this->board->GetCountClickTB())/
-            this->board->GetCountClick() -
-            this->timer.GetTime()) * 100;
+            float A = float(this->board->GetCountClickTB())/this->board->GetCountClick();
+            float B = float(this->board->GetCountClickTB())/this->timer.GetTime();
+            int score = A*B*1000;
             score = score<0?0:score;
 
             std::vector<std::string> texts = {
@@ -113,6 +115,9 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
             "Clicks: " + std::to_string(this->board->GetCountClick()),
             "Score: " + std::to_string(score),
             };
+
+            if (this->bestRecord == std::nullopt || score > this->bestRecord->score || (score == this->bestRecord->score && this->timer.GetTime() < this->bestRecord->time))
+            { texts.push_back("<<New Best Score>>");}
 
             this->PanelResult.SetLines(texts);
         }
@@ -135,7 +140,10 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
     };
     // nếu lần đầu chơi thì k có best score
     if (this->bestRecord != std::nullopt)
-    {texts.push_back("Best Score: " + std::to_string(this->bestRecord->score));}
+    {
+        texts.push_back("Best Score: " + std::to_string(this->bestRecord->score));
+        texts.push_back("Time: " + FormatFloatTime(this->bestRecord->time));
+    }
     else {texts.push_back("Best Score: Null");}
     this->PanelStat.SetLines(texts);
 
@@ -162,9 +170,15 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
 
 void GameScreen::Render(sf::RenderWindow& window)
 {
+    // vẽ nền
     window.draw(this->spriteBg);
+    // vẽ bảng trò chơi
     RenderGrid(window);
+    // vẽ đè lên của các GameMode
+    this->mode->RenderEffects(window);
+    // vẽ các nút trên màn hình
     RenderButtons(window);
+
     if (overlayOn)
     {this->overlay.Render(window);}
 
@@ -176,7 +190,7 @@ void GameScreen::Render(sf::RenderWindow& window)
     }
 }
 
-void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
+void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint, float deltaTime)
 {
     if (this->overlayOn)
     {
@@ -184,7 +198,7 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
         return;
     }
 
-    Screen::HandleEvent(event, mousePoint);
+    Screen::HandleEvent(event, mousePoint,deltaTime);
 
     // Tương tác với bàn cờ
     if (!this->board->IsEnded())
@@ -200,7 +214,7 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
                 // Mode hiện tại có đang cho phép mở ô này hoặc lân cận hay không
                 if (mousePressed->button == sf::Mouse::Button::Left && this->mode->CanInteract(point))
                 {
-                    OpenResult res = this->mode->CheckCellOpen(point); // nhận 3 giá trị Safe Lose Blocked
+                    OpenResult res = this->mode->CheckCellOpen(point); // nhận 3 giá trị Safe Blocked
 
                     if (res == OpenResult::Safe)
                     {
@@ -208,7 +222,7 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
                         this->board->UpCountCLick();
                     }
 
-                    // Thiết lập hình ảnh nút reset khi thua/thắng, và PanelResult
+                    // Thiết lập hình ảnh nút reset khi thua/thắng, PanelResult
                     switch(res)
                     {
                         case OpenResult::Win:
@@ -219,10 +233,9 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetWon)
                             );
                             this->PanelResult.SetTitle("YOU WON");
-                            int score = 
-                            (2*float(this->board->GetCountClickTB())/
-                            this->board->GetCountClick() -
-                            this->timer.GetTime()) * 100;
+                            float A = float(this->board->GetCountClickTB())/this->board->GetCountClick();
+                            float B = float(this->board->GetCountClickTB())/this->timer.GetTime();
+                            int score = A*B*1000;
                             score = score<0?0:score;
 
                             std::vector<std::string> texts = {
@@ -233,7 +246,14 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
                             "Score: " + std::to_string(score),
                             };
 
+                            if (this->bestRecord == std::nullopt || score > this->bestRecord->score || (score == this->bestRecord->score && this->timer.GetTime() < this->bestRecord->time))
+                            { texts.push_back("<<New Best Score>>");}
+
                             this->PanelResult.SetLines(texts);
+
+                            // lưu kỉ lục mới nếu có
+                            if (score > this->bestRecord->score || (score == this->bestRecord->score && this->timer.GetTime() < this->bestRecord->time))
+                            { SaveManager::UpdateRecord(static_cast<int>(this->mapID), static_cast<int>(this->modeID), score, this->timer.GetTime()); }
                             break;
                         }
                         case OpenResult::Lose:
@@ -255,13 +275,37 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
                         }
                         default: break;
                     }
+
+                    // thiết lập PanelStat
+                    if (this->board->IsEnded())
+                    {
+                        this->bestRecord = SaveManager::GetRecord(static_cast<int>(this->mapID), static_cast<int>(this->modeID));
+                        std::vector<std::string> texts = {
+                            "3BV: " + std::to_string(this->board->GetCountClickTB())
+                        };
+                        // nếu lần đầu chơi thì k có best score
+                        if (this->bestRecord != std::nullopt)
+                        {
+                            texts.push_back("Best Score: " + std::to_string(this->bestRecord->score));
+                            texts.push_back("Time: " + std::to_string(this->bestRecord->time));
+                        }
+                        else {texts.push_back("Best Score: Null");}
+                        this->PanelStat.SetLines(texts);
+                    }
                 }
 
                 else if (mousePressed->button == sf::Mouse::Button::Right)
                 {
-                    this->board->ToggleMark(point);
+                    if (this->mode->NeedHold(point))
+                    { this->CellHolding = point;}
+                    else { this->board->ToggleMark(point); }
                 }
             }
+        }
+        else if (const auto* mouseReleased = event.getIf<sf::Event::MouseButtonReleased>())
+        { 
+            if (mouseReleased->button == sf::Mouse::Button::Right)
+            { this->CellHolding = std::nullopt; }
         }
     }
 }
@@ -276,6 +320,17 @@ void GameScreen::Update(float deltaTime,sf::Vector2f mousePoint)
         if (int(this->timer.GetTime())%5 == 0)
         { SaveManager::SaveGame(this->board.get(), this->mode.get(), static_cast<int>(this->mapID), static_cast<int>(this->modeID), this->timer.GetTime()); }
 
+        // Mode thực hiện sự kiện theo thời gian
+        this->mode->OnTick(deltaTime);
+        // Khi chuột đang đc giữ
+        if (this->CellHolding != std::nullopt)
+        {
+            this->mode->OnLeftHold( *this->CellHolding, deltaTime);
+            // khi mà mode đã xử lý xong CellHolding
+            if (!this->mode->NeedHold(*this->CellHolding))
+            { this->CellHolding = std::nullopt; }
+        }
+        
         Screen::Update(deltaTime,mousePoint);
 
         if (this->board->IsGenerated() && !this->board->IsEnded())
@@ -285,34 +340,19 @@ void GameScreen::Update(float deltaTime,sf::Vector2f mousePoint)
 
 void GameScreen::CreateBoard()
 {
-    switch(this->mapID)
+    switch(this->modeID)
     {
-        case MapID::Basic:
-            switch(this->modeID)
-            {
-                case ModeID::Easy:  
-                    this->board = std::make_unique<SquareBoard>(50,sf::Vector2f(415,200),9,9,10);
-                    break;
-                case ModeID::Normal:
-                    this->board = std::make_unique<SquareBoard>(30,sf::Vector2f(400,188),16,16,40);
-                    break;
-                case ModeID::Hard:
-                    this->board = std::make_unique<SquareBoard>(30,sf::Vector2f(210,188),30,16,99);
-                    break;
-                case ModeID::Explore:
-                    //... chưa làm
-                    break;
-            }
-
+        case ModeID::Easy:  
+            this->board = std::make_unique<SquareBoard>(50,sf::Vector2f(415,200),9,9,10);
             break;
-        case MapID::Desert:
-
+        case ModeID::Normal:
+            this->board = std::make_unique<SquareBoard>(30,sf::Vector2f(400,188),16,16,40);
             break;
-        case MapID::Jungle:
-
+        case ModeID::Hard:
+            this->board = std::make_unique<SquareBoard>(30,sf::Vector2f(210,188),30,16,99);
             break;
-        case MapID::BeeHive:
-
+        case ModeID::Explore:
+            //... chưa làm
             break;
     }
 }
@@ -320,7 +360,22 @@ void GameScreen::CreateBoard()
 void GameScreen::CreateMode()
 {
     // vì board lưu trong unique_ptr nền board.get() lấy AbstractBoard*
-    this->mode = std::make_unique<BasicMode>(this->board.get(), &this->player);
+    switch(this->mapID)
+    {
+        case MapID::Basic:
+            this->mode = std::make_unique<BasicMode>(this->board.get(), &this->player);
+            break;
+        
+        case MapID::Desert:
+            this->mode = std::make_unique<DesertMode>(this->board.get(), &this->player,this->game->GetResources().GetImage(ImageID::G_Wrong)); // sài tạm
+            break;
+        case MapID::Jungle:
+            //.. chưa làm
+            break;
+        case MapID::BeeHive:
+            //.. chưa làm
+            break;
+    }
 }
 
 void GameScreen::RenderGrid(sf::RenderWindow& window) const
@@ -354,7 +409,7 @@ void GameScreen::RenderGrid(sf::RenderWindow& window) const
                 window.draw(sprite);
                 if (cell->GetNumber() != 0)
                 {
-                    sprite.setTexture(this->game->GetResources().GetImage(static_cast<ImageID>(static_cast<int>(ImageID::G_number0)+cell->GetNumber())));
+                    sprite.setTexture(this->game->GetResources().GetImage(static_cast<ImageID>(static_cast<int>(ImageID::G_Number0)+cell->GetNumber())));
                     window.draw(sprite);
                 }
                 continue; 
@@ -397,7 +452,7 @@ void GameScreen::RenderGrid(sf::RenderWindow& window) const
                     sprite.setTexture(this->game->GetResources().GetImage(ImageID::G_Bomb));
                     window.draw(sprite);
                 }
-                // Hiện các cờ đánh sai
+                // Hiện các ô bị đặt cờ sai
                 if (cell->GetState() == CellState::Flagged && !cell->CheckIsMine())
                 {
                     sprite.setTexture(this->game->GetResources().GetImage(ImageID::G_Wrong));
@@ -415,9 +470,9 @@ void GameScreen::RenderGrid(sf::RenderWindow& window) const
             sf::Vector2f pointDraw = this->board->CellToPixel(point);
             sprite.setPosition(pointDraw);
     
-            sprite.setTexture(this->game->GetResources().GetImage(ImageID::G_Wrong));
+            sprite.setTexture(this->game->GetResources().GetImage(ImageID::G_Hidded));
             window.draw(sprite);
-            sprite.setTexture(this->game->GetResources().GetImage(ImageID::G_Bomb));
+            sprite.setTexture(this->game->GetResources().GetImage(ImageID::G_Dead));
             window.draw(sprite);
         }
     }

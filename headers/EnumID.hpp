@@ -44,16 +44,16 @@ enum class ImageID {
     SMode_BtnExplore,
     SMode_BtnStart,
     SMode_BtnBack,
-    // Trang Game <Các nút hiện không có effect>
-    G_Bg,
-    G_BtnPause,
     // Trang Overlay <Các nút hiện không có effect>
     OL_Bg,
     OL_BtnContinue,
     OL_BtnBackToHome,
 
+    // Trang Game <Các nút hiện không có effect>
+    G_Bg,
+    G_BtnPause,
     /* VÙNG LÕI GAME (Core Gameplay) */
-    G_number0, // :> điểm mốc (không có ảnh)
+    G_Number0, // điểm gốc để load lúc vẽ
     G_Number1,
     G_Number2,
     G_Number3,

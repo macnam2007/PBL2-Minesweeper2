@@ -109,6 +109,7 @@ cắm cờ.
                                     giữ chuột trái khoảng 3 giây để lau
     Jungle      - Lưới ô vuông   - Rễ cây định kỳ mọc trên ô chưa mở;
                                     giữ chuột trái khoảng 3 giây để phá
+                                    sau 10s không phá thì nó sẽ mọc lan ra (chế độ explore thì không lan)
     Bee's Hive  - Lưới lục giác  - 2 mạng; mở trúng ong sẽ kích hoạt hiệu
                                     ứng và trừ mạng (chi tiết mục 5.3)
 

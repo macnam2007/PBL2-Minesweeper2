@@ -49,6 +49,7 @@ SelectMapScreen::SelectMapScreen(Game* game)
             game->GetResources().PlaySound(SoundID::BtnReleased);
             // lệnh sau khi bấm nút
             game->ChangeScreen(std::make_unique<SelectModeScreen>(game,MapID::Basic));
+            game->GetResources().LoadImagesBoard(MapID::Basic);
         }
     );
     btnDesert.SetOnClick(
@@ -56,6 +57,7 @@ SelectMapScreen::SelectMapScreen(Game* game)
             game->GetResources().PlaySound(SoundID::BtnReleased);
             // lệnh sau khi bấm nút
             game->ChangeScreen(std::make_unique<SelectModeScreen>(game,MapID::Desert));
+            game->GetResources().LoadImagesBoard(MapID::Desert);
         }
     );
     btnJungle.SetOnClick(
@@ -63,6 +65,7 @@ SelectMapScreen::SelectMapScreen(Game* game)
             game->GetResources().PlaySound(SoundID::BtnReleased);
             // lệnh sau khi bấm nút
             game->ChangeScreen(std::make_unique<SelectModeScreen>(game,MapID::Jungle));
+            game->GetResources().LoadImagesBoard(MapID::Jungle);
         }
     );
     btnBeeHive.SetOnClick(
@@ -70,6 +73,7 @@ SelectMapScreen::SelectMapScreen(Game* game)
             game->GetResources().PlaySound(SoundID::BtnReleased);
             // lệnh sau khi bấm nút
             game->ChangeScreen(std::make_unique<SelectModeScreen>(game,MapID::BeeHive));
+            game->GetResources().LoadImagesBoard(MapID::BeeHive);
         }
     );
 

@@ -19,8 +19,5 @@ OpenResult BasicMode::CheckCellOpen(CellPoint cellPoint) const
         (cell->GetState() == CellState::Openned && cell->GetNumber() == 0)
     ) { return OpenResult::Blocked; }
 
-    if (cell->CheckIsMine())
-    { return OpenResult::Lose; }
-
     { return OpenResult::Safe; } // board bên ngoài nhận và tự kiểm tra nên mở như thế nào
 }

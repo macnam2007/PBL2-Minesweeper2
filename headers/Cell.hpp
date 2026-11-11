@@ -12,7 +12,7 @@ class Cell
     public:
         Cell();
 
-        bool OpenCell(); // false nếu mở trúng mìn
+        void OpenCell();
         bool CanOpenCell() const; // kiểm tra đc mở hay không
         bool Openned() const; // kiểm tra xem ô đã mở chưa
         int GetNumber() const;

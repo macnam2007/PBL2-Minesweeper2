@@ -211,11 +211,29 @@ bool Board::IsGenerated() const
 OpenResult Board::OpenAt(const CellPoint& cellPoint)
 {
     Cell* cell = &this->cells[cellPoint.y*this->cols+cellPoint.x];
+    // ô mở là mìn
+    if (cell->CheckIsMine())
+    {
+        this->ended = true;
+        this->losed = true;
+
+        AddCellPointDead(cellPoint);
+        return OpenResult::Lose;
+    }
+
     // mở lần đầu
     Generate(cellPoint);
     if (cell->GetNumber() == 0)
     {
+        cell->OpenCell();
         FloodFill(cellPoint);
+        if (CheckWin())
+        {
+            this->ended = true;
+            this->losed = false;
+            return OpenResult::Win;
+        }
+
         return OpenResult::Safe;
     }
     else {
@@ -224,7 +242,11 @@ OpenResult Board::OpenAt(const CellPoint& cellPoint)
 
         cell->OpenCell();
         if (CheckWin())
-        { return OpenResult::Win;}
+        {
+            this->ended = true;
+            this->losed = false;
+            return OpenResult::Win;
+        }
     }
     
     return OpenResult::Safe;
@@ -277,7 +299,12 @@ OpenResult Board::OpenChord(const CellPoint& cellPoint)
             }
         }
     }
-    if (CheckWin()) { return OpenResult::Win; }
+    if (CheckWin())
+    {
+        this->ended = true;
+        this->losed = false;
+        return OpenResult::Win;
+    }
     return OpenResult::Safe;
 }
 

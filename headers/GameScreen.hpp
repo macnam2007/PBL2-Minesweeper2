@@ -37,13 +37,15 @@ class GameScreen : public Screen
 
         std::optional<Record> bestRecord;
 
+        std::optional<CellPoint> CellHolding;
+
     
     public:
 
         explicit GameScreen(Game* game, MapID mapID, ModeID modeID);
         void Render(sf::RenderWindow& window) override;
         
-        void HandleEvent(const sf::Event& event, sf::Vector2f mousePoint) override;
+        void HandleEvent(const sf::Event& event, sf::Vector2f mousePoint, float deltaTime) override;
         void Update(float deltaTime, sf::Vector2f mousePoint) override;
 
         void CreateBoard();

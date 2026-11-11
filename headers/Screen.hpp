@@ -34,7 +34,7 @@ class Screen
         Screen& operator=(const Screen&) = delete;    // nên không được sao chép
 
         /* kiểm tra sự kiện game */
-        virtual void HandleEvent(const sf::Event& event, const sf::Vector2f mousePoint);
+        virtual void HandleEvent(const sf::Event& event, const sf::Vector2f mousePoint, float deltaTime);
 
         virtual void Update(float deltaTime, sf::Vector2f mousePoint);
         virtual void Render(sf::RenderWindow& window) = 0;

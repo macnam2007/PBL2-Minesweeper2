@@ -26,7 +26,8 @@ class ResourceManager
         ResourceManager(){};
         ~ResourceManager(){};
 
-        bool LoadImages();
+        bool LoadImagesGlobal();
+        bool LoadImagesBoard(MapID map);
         bool LoadSounds();
         bool LoadMusic();
         bool LoadFont();

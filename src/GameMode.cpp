@@ -21,7 +21,7 @@ bool GameMode::CanInteract(CellPoint)
 { return true; }
 
 // game dò mìn mặc định không có tương tác giữ phim
-bool GameMode::CanHold(CellPoint) const
+bool GameMode::NeedHold(CellPoint) const
 { return false; }
 
 // game dò mìn mặc định không có hiệu ứng nên k chặn tương tác
