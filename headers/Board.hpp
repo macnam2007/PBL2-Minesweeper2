@@ -31,5 +31,5 @@ class Board : public AbstractBoard
         bool CheckWin();
 
         bool Load(std::istream& input, float& time) override;
-        void Save(std::ostream& output) const override;
+        void Save(std::ostream& output, float time) const override;
 };

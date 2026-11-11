@@ -1,4 +1,5 @@
 #include "../headers/Board.hpp"
+#include <iostream>
 #include <random>
 
 Board::Board(int cols, int rows, int mineCount) : cols(cols), rows(rows), mineCount(mineCount)
@@ -331,7 +332,7 @@ bool Board::CheckWin()
 bool Board::Load(std::istream& input, float& time) 
 {
     /* Mô tả file data */
-    //1) dòng đầu tiên "rows cols minesCount time generated ended losed"
+    //1) dòng đầu tiên "rows cols minesCount timeSave generated ended losed countClick countClickTB"
     //2) rows dòng tiếp theo : chứa số của ô và ô mìn có giá trị là 9
     //3) rows dòng tiếp theo : chứa trạng thái của ô
     //4) dòng tiếp theo      : deadCount 
@@ -340,17 +341,21 @@ bool Board::Load(std::istream& input, float& time)
 
 
     //1) ---------------
-    int rows,cols,mineCount,timeSave,generated,ended,losed;
-    if (!(input >> rows >> cols >> mineCount >> timeSave >> generated >> ended >> losed))
-    { return false; }
+    int rows,cols,mineCount,generated,ended,losed,countClick,countClickTB;
+    float timeSave;
+    if (!(input >> rows >> cols >> mineCount >> timeSave >> generated >> ended >> losed >> countClick >> countClickTB))
+    { std::cout<<"vitri1"; return false; }
 
     // kiểm tra dữ liệu
-    if (rows != this->rows || cols != this->cols || mineCount != this->mineCount || timeSave<0)
-    { return false; }
+    if (rows != this->rows || cols != this->cols || mineCount != this->mineCount || timeSave<0 || countClick <0 || countClick > countClickTB || countClickTB <0 || countClickTB>this->cols*this->rows-this->mineCount)
+    { std::cout<<"vitri2"; return false; }
     time = timeSave;
+    this->countClick = countClick;
+    this->countClickTB = countClickTB;
 
     auto isBool = [](int v) { return v == 0 || v == 1; }; // lambda
-    if (!isBool(generated) || !isBool(ended) || !isBool(losed)) return false;
+    if (!isBool(generated) || !isBool(ended) || !isBool(losed))
+    { std::cout<<"vitri3"; return false;}
 
     // lưu tạm dữ liệu vào đây
     std::vector<Cell> loaded1(this->cells.size());
@@ -360,7 +365,7 @@ bool Board::Load(std::istream& input, float& time)
     {
         int number;
         if (!(input >> number) || number <0 || number>9)
-        { return false; }
+        { std::cout<<"vitri4"; return false; }
         
         if (number == 9)
         { cell.MineToggle(); }
@@ -373,7 +378,7 @@ bool Board::Load(std::istream& input, float& time)
     {
         int state;
         if (!(input >> state) || state <0 || state>3)
-        { return false; }
+        { std::cout<<"vitri5"; return false; }
         switch(state)
         {
             case 0:
@@ -396,16 +401,16 @@ bool Board::Load(std::istream& input, float& time)
     for (const Cell& cell : loaded1){ if (cell.CheckIsMine()) mines ++; }
 
     if (generated && mines != this->mineCount)
-    { return false; }
+    { std::cout<<"vitri6"; return false; }
     
     if (!generated && mines != 0)
-    { return false;}
+    { std::cout<<"vitri7"; return false;}
 
 
     //4) ---------------
     int deadCount;
     if (!(input >> deadCount) || deadCount<0 || deadCount >4)
-    { return false; }
+    { std::cout<<"vitri8" <<deadCount ; return false; }
 
     // lưu tạm dữ liệu vào đây
     std::vector<CellPoint> loaded2;
@@ -427,10 +432,10 @@ bool Board::Load(std::istream& input, float& time)
     return true;
 }
 
-void Board::Save(std::ostream& output) const
+void Board::Save(std::ostream& output, float time) const
 {
     /* Mô tả file data */
-    //1) dòng đầu tiên "rows cols minesCount generated ended losed"
+    //1) dòng đầu tiên "rows cols minesCount timeSave generated ended losed clickCount clickCountTB"
     //2) rows dòng tiếp theo : chứa số của ô và ô mìn có giá trị là 9
     //3) rows dòng tiếp theo : chứa trạng thái của ô
     //4) dòng tiếp theo      : deadCount 
@@ -438,7 +443,7 @@ void Board::Save(std::ostream& output) const
 
 
     //1) ---------------
-    output << this->rows << " " << this->cols << " " << this->mineCount << " " << this->generated << " " << this->ended << " " << this->losed <<"\n";
+    output << this->rows << " " << this->cols << " " << this->mineCount << " " << time << " " << this->generated << " " << this->ended << " " << this->losed << " " << this->countClick << " " << this->countClickTB << "\n";
 
     //2) ---------------
     for (int y =0; y<this->rows; y++)
@@ -449,6 +454,7 @@ void Board::Save(std::ostream& output) const
             output << (x<this->cols-1 ? " " : "\n");
         }
     }
+    output << "\n";
 
     //3) ---------------
     for (int y =0; y<this->rows; y++)

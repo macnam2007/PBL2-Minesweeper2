@@ -16,8 +16,7 @@ class Game
         std::unique_ptr<Screen> pending; // |Screen* current
 
         sf::Clock clock;
-        float deltaTime = 0.f;           // tránh đọc giá trị rác
-
+        float deltaTime = 0.f;
         bool running = true;
 
     public:

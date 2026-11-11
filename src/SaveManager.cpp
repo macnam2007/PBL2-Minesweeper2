@@ -3,29 +3,31 @@
 #include <optional>
 #include <string>
 
+#include <iostream>
+
 bool SaveManager::LoadGame(AbstractBoard& board, GameMode& mode, int mapID, int modeID, float& time)
 {
-    std::string nameFile = std::to_string(mapID) + "_" + std::to_string(modeID) + ".txt";
+    std::string nameFile = "../data/" + std::to_string(mapID) + "_" + std::to_string(modeID) + ".txt";
     std::ifstream input(nameFile);
 
     if (!input)
-    { return false; }
+    { std::cout<<"error:1"; return false; }
 
     if (!board.Load(input,time))
-    { return false; }
+    { std::cout<<"error:2"; return false; }
 
     if (!mode.Load(input))
-    { return false; }
+    { std::cout<<"error:3"; return false; }
 
     return true;
 }
 
 bool SaveManager::SaveGame(const AbstractBoard* board , const GameMode* mode, int mapID, int modeID, float time)
 {
-    std::string nameFile = std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
+    std::string nameFile = "../data/" + std::to_string(mapID) + "_" + std::to_string(modeID) +".txt";
     std::ofstream output(nameFile);
-    if (!output) { return false; }
-    board->Save(output);
+    if (!output) { return false;}
+    board->Save(output,time);
     mode->Save(output);
     return true;
 }

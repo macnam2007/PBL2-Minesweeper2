@@ -12,7 +12,5 @@ class Timer
         void Reset();
         void Update(float deltaTime);
         float GetTime() const;
-        int GetMinutes();
-        int GetSeconds();
     
 };

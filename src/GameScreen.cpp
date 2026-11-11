@@ -43,6 +43,7 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
             this->game->GetResources().PlaySound(SoundID::BtnReleased);
             // lệnh thực hiện khi click chuột
             this->overlayOn = true;
+            SaveManager::SaveGame(this->board.get(), this->mode.get(), static_cast<int>(this->mapID), static_cast<int>(this->modeID), this->timer.GetTime());
         }
     );
     this->btnReset.SetOnClick(
@@ -56,6 +57,7 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
                 this->game->GetResources().GetImage(ImageID::G_BtnResetNormal)
             );
             this->board->ResetBoard();
+            SaveManager::SaveGame(this->board.get(), this->mode.get(), static_cast<int>(this->mapID), static_cast<int>(this->modeID), this->timer.GetTime());
         }
     );
     // Đặt vị trí của ảnh (Gốc của ảnh: góc trên bên trái)
@@ -72,8 +74,73 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
     if (SaveManager::LoadGame(*this->board, *this->mode, mapid, modeid, time))
     {
         this->timer.SetTime(time);
+        // nếu màn trc đó đã end thì bổ xung thông tin cho PanelResult
+
+        if (this->board->IsEnded() && this->board->IsLosed())
+        {
+            this->btnReset.UpdateImage(
+                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
+                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
+                this->game->GetResources().GetImage(ImageID::G_BtnResetLosed)
+            );
+            this->PanelResult.SetTitle("YOU LOSED");
+            std::vector<std::string> texts = {
+            "Time: " + FormatFloatTime(this->timer.GetTime()) +" sec",
+            "3BV: " + std::to_string(this->board->GetCountClick()) + "/" + std::to_string(this->board->GetCountClickTB()),
+            "3BV/s: " + std::to_string(this->board->GetCountClick()/this->timer.GetTime()),
+            "Clicks: " + std::to_string(this->board->GetCountClick())
+            };
+            this->PanelResult.SetLines(texts);
+        }
+        else if (this->board->IsEnded() && !this->board->IsLosed())
+        {
+            this->btnReset.UpdateImage(
+                this->game->GetResources().GetImage(ImageID::G_BtnResetWon) ,
+                this->game->GetResources().GetImage(ImageID::G_BtnResetWon) ,
+                this->game->GetResources().GetImage(ImageID::G_BtnResetWon)
+            );
+            this->PanelResult.SetTitle("YOU WON");
+            int score = 
+            (2*float(this->board->GetCountClickTB())/
+            this->board->GetCountClick() -
+            this->timer.GetTime()) * 100;
+            score = score<0?0:score;
+
+            std::vector<std::string> texts = {
+            "Time: " + FormatFloatTime(this->timer.GetTime()) +" sec",
+            "3BV: " + std::to_string(this->board->GetCountClick()) + "/" + std::to_string(this->board->GetCountClickTB()),
+            "3BV/s: " + std::to_string(this->board->GetCountClick()/this->timer.GetTime()),
+            "Clicks: " + std::to_string(this->board->GetCountClick()),
+            "Score: " + std::to_string(score),
+            };
+
+            this->PanelResult.SetLines(texts);
+        }
+    }
+    else
+    {
+        std::cout<<"Không load đc Màn chơi!!!\n";
+        CreateBoard();   // LoadGame lỗi giữa chừng có thể làm bàn dở dang, dựng lại cho sạch
+        CreateMode();    // Tạo lại cho an toàn
+        this->timer.Reset();
+    }
+
+    // đọc thông tin đã lưu nếu có
+    this->bestRecord = SaveManager::GetRecord(mapid, modeid);
+
+    // Thêm thông tin vào PanelStat
+    this->PanelStat.SetTitle("STAT");
+    std::vector<std::string> texts = {
+        "3BV: " + std::to_string(this->board->GetCountClickTB())
+    };
+    // nếu lần đầu chơi thì k có best score
+    if (this->bestRecord != std::nullopt)
+    {texts.push_back("Best Score: " + std::to_string(this->bestRecord->score));}
+    else {texts.push_back("Best Score: Null");}
+    this->PanelStat.SetLines(texts);
 
     if (this->board->IsEnded())
+    {
         if (this->board->IsLosed())
         {
             this->btnReset.UpdateImage(
@@ -91,22 +158,6 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
             );
         }
     }
-    else
-    {
-        CreateBoard();   // LoadGame lỗi giữa chừng có thể làm bàn dở dang, dựng lại cho sạch
-        CreateMode();    // Tạo lại cho an toàn
-    }
-
-    this->bestRecord = SaveManager::GetRecord(mapid, modeid);
-
-
-    // Thêm thông tin vào PanelStat
-    this->PanelStat.SetTitle("STAT");
-    std::vector<std::string> texts = {
-        "3BV: " + std::to_string(this->board->GetCountClickTB()),
-        "Best Score: " + std::to_string(this->bestRecord->score)
-    };
-    this->PanelStat.SetLines(texts);
 }
 
 void GameScreen::Render(sf::RenderWindow& window)
@@ -119,9 +170,9 @@ void GameScreen::Render(sf::RenderWindow& window)
 
     if (this->board->IsEnded())
     {
+        /* vẽ thông tin khi kết game */
         this->PanelStat.Render(window);
         this->PanelResult.Render(window);
-        /* vẽ thông tin khi kết game */
     }
 }
 
@@ -149,22 +200,53 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint)
                 if (mousePressed->button == sf::Mouse::Button::Left)
                 {
                     OpenResult res = this->board->OpenAt(point);
-                    // Thiết lập hình ảnh nút reset nếu thua
+                    // Thiết lập hình ảnh nút reset khi thua/thắng, và PanelResult
                     switch(res)
                     {
                         case OpenResult::Lose:
+                        {
                             this->btnReset.UpdateImage(
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetLosed) ,
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetLosed)
                             );
+                            this->PanelResult.SetTitle("YOU LOSED");
+                            std::vector<std::string> texts = {
+                            "Time: " + FormatFloatTime(this->timer.GetTime()) +" sec",
+                            "3BV: " + std::to_string(this->board->GetCountClick()) + "/" + std::to_string(this->board->GetCountClickTB()),
+                            "3BV/s: " + std::to_string(this->board->GetCountClick()/this->timer.GetTime()),
+                            "Clicks: " + std::to_string(this->board->GetCountClick())
+                            };
+                            this->PanelResult.SetLines(texts);
                             break;
+                        }
                         case OpenResult::Win:
+                        {
                             this->btnReset.UpdateImage(
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetWon) ,
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetWon) ,
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetWon)
                             );
+                            this->PanelResult.SetTitle("YOU WON");
+                            int score = 
+                            (2*float(this->board->GetCountClickTB())/
+                            this->board->GetCountClick() -
+                            this->timer.GetTime()) * 100;
+                            score = score<0?0:score;
+
+                            std::vector<std::string> texts = {
+                            "Time: " + FormatFloatTime(this->timer.GetTime()) +" sec",
+                            "3BV: " + std::to_string(this->board->GetCountClick()) + "/" + std::to_string(this->board->GetCountClickTB()),
+                            "3BV/s: " + std::to_string(this->board->GetCountClick()/this->timer.GetTime()),
+                            "Clicks: " + std::to_string(this->board->GetCountClick()),
+                            "Score: " + std::to_string(score),
+                            };
+
+                            this->PanelResult.SetLines(texts);
+                            break;
+                        }
+                        case OpenResult::Safe:
+                            this->board->UpCountCLick();
                             break;
                         default: break;
                     }
@@ -185,9 +267,13 @@ void GameScreen::Update(float deltaTime,sf::Vector2f mousePoint)
     { this->overlay.Update(mousePoint); }
     else
     {
+        // sau 5s lưu file 1 lần
+        if (int(this->timer.GetTime())%5 == 0)
+        { SaveManager::SaveGame(this->board.get(), this->mode.get(), static_cast<int>(this->mapID), static_cast<int>(this->modeID), this->timer.GetTime()); }
+
         Screen::Update(deltaTime,mousePoint);
 
-        if (!this->board->IsGenerated() && !this->board->IsEnded())
+        if (this->board->IsGenerated() && !this->board->IsEnded())
         { this->timer.Update(deltaTime); }
     }
 }
@@ -330,4 +416,11 @@ void GameScreen::RenderGrid(sf::RenderWindow& window) const
             window.draw(sprite);
         }
     }
+}
+
+std::string GameScreen::FormatFloatTime(float time) const
+{
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(4) << time;
+    return ss.str();
 }

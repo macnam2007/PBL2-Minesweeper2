@@ -30,6 +30,7 @@ class AbstractBoard
         virtual std::optional<CellPoint> MouseToCell(const sf::Vector2f& mousePoint) const= 0; // kiểm tra vị trí này nằm trong ô nào
         
         virtual int GetCountClick() const { return this->countClick; }
+        virtual void UpCountCLick() { this->countClick++;}
         virtual int GetCountClickTB() const { return this->countClickTB; }
         virtual int GetMineCount() const = 0;
         virtual int GetFlaggedCount()  const = 0;
@@ -53,5 +54,5 @@ class AbstractBoard
         virtual void ToggleMark(const CellPoint& cellPoint) = 0;     // click phải
 
         virtual bool Load(std::istream& input, float& time) = 0;       // Lưu các ô hiện tại vào vùng trên của file
-        virtual void Save(std::ostream& output) const = 0; // Tương tác file vùng trên (chứa các ô)
+        virtual void Save(std::ostream& output, float time) const = 0; // Tương tác file vùng trên (chứa các ô)
 };

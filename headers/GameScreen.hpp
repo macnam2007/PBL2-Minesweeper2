@@ -50,4 +50,5 @@ class GameScreen : public Screen
         void CreateMode();
 
         void RenderGrid(sf::RenderWindow& window) const;
+        std::string FormatFloatTime(float time) const;
 };

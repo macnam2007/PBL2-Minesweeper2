@@ -1,4 +1,5 @@
 #include "../headers/Timer.hpp"
+#include "cmath"
 
 void Timer::SetTime(float time)
 { this->timeElapsed = time; }
@@ -13,15 +14,3 @@ void Timer::Update(float deltaTime)
 
 float Timer::GetTime() const
 { return this->timeElapsed; }
-
-int Timer::GetMinutes()
-{
-    int time = static_cast<int>(this->timeElapsed);
-    return time / 60;
-}
-
-int Timer::GetSeconds()
-{
-    int time = static_cast<int>(this->timeElapsed);
-    return time % 60;
-}
