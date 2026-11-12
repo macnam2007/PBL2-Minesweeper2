@@ -15,10 +15,5 @@ class SquareBoard : public Board
         sf::Vector2f CellToPixel(const CellPoint& cellPoint) const override; // chuyển ô này thành tọa độ cần vẽ trên màn hình
         std::optional<CellPoint> MouseToCell(const sf::Vector2f& mousePoint) const override; // kiểm tra vị trí này nằm trong ô nào
 
-        int GetMineCount() const override;
-        int GetFlaggedCount()  const override; 
-
         float GetSizeCell() const override;
-        bool IsWon() const override;
-
 };

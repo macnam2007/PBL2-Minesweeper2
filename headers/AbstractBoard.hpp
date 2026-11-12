@@ -18,6 +18,7 @@ class AbstractBoard
         int countClick = 0;
         int countClickTB = 0; // số click cần thiết để giải (Mode:easy,normal,hard : không cần kỉ thuật nâng cao | Mode:explore : có thể cần kỉ thuật nâng cao) 
         std::function<bool(CellPoint)> validator; // nhận lambda kiểm tra có bị chặn bởi rễ cây không
+        std::function<bool(CellPoint)> onHitMineValidator;
     public:
         AbstractBoard(){};
         virtual ~AbstractBoard(){};
@@ -32,6 +33,8 @@ class AbstractBoard
         virtual std::optional<CellPoint> MouseToCell(const sf::Vector2f& mousePoint) const= 0; // kiểm tra vị trí này nằm trong ô nào
         
         void SetValidator(std::function<bool(CellPoint)> validator) { this->validator = validator; }
+        void SetHitMineValidator(std::function<bool(CellPoint)> hitMineValidator) {this->onHitMineValidator = hitMineValidator; }
+
         virtual int GetCountClick() const { return this->countClick; }
         virtual void UpCountCLick() { this->countClick++;}
         virtual int GetCountClickTB() const { return this->countClickTB; }

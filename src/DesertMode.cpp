@@ -85,6 +85,9 @@ void DesertMode::OnLeftHold(CellPoint cellPoint,float deltaTime)
 void DesertMode::RenderEffects(sf::RenderTarget& target) const
 {
     sf::Sprite sprite(*this->sandTexture);
+    // dời về tâm
+    sf::FloatRect bounds = sprite.getLocalBounds();
+    sprite.setOrigin({bounds.size.x / 2.0f, bounds.size.y / 2.0f});
 
     // Lấy kích thước pixel gốc của tấm ảnh
     float originalWidth = static_cast<float>(sprite.getTexture().getSize().x);

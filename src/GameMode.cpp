@@ -13,7 +13,7 @@ OpenResult GameMode::CheckCellOpen(CellPoint cellPoint) const
 {
     Cell* cell = this->board->GetCell(cellPoint);
     if (!cell || cell->GetState() != CellState::Hidden) return OpenResult::Blocked;
-    return cell->CheckIsMine() ? OpenResult::Lose : OpenResult::Safe;
+    return OpenResult::Safe; 
 }
 
 // game dò mìn mặc định không có tương tác đặc biệt nên trả về true

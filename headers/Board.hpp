@@ -32,4 +32,10 @@ class Board : public AbstractBoard
 
         bool Load(std::istream& input, float& time) override;
         void Save(std::ostream& output, float time) const override;
+
+
+        int GetMineCount() const override;
+        int GetFlaggedCount()  const override; 
+
+        bool IsWon() const override;
 };

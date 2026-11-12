@@ -160,7 +160,28 @@ bool ResourceManager::LoadImagesBoard(MapID map)
         }
         case MapID::BeeHive:
         {
-            // từ từ rồi tính
+            //Load background
+            if (
+                !this->images[ImageID::G_Bg].loadFromFile("../assets/images/G_Basic_Bg.png") // sài tạm
+            ) {std::cerr<<"Error: load image BackGround\n"; return false;}
+            
+            //Load các ảnh của game
+            if (
+                !this->images[ImageID::G_Hidded].loadFromFile("../assets/images/G_BeeHive_Hidded.png") ||
+                !this->images[ImageID::G_Openned].loadFromFile("../assets/images/G_BeeHive_Openned.png") ||
+                !this->images[ImageID::G_Number1].loadFromFile("../assets/images/G_BeeHive_Number1.png") ||
+                !this->images[ImageID::G_Number2].loadFromFile("../assets/images/G_BeeHive_Number2.png") ||
+                !this->images[ImageID::G_Number3].loadFromFile("../assets/images/G_BeeHive_Number3.png") ||
+                !this->images[ImageID::G_Number4].loadFromFile("../assets/images/G_BeeHive_Number4.png") ||
+                !this->images[ImageID::G_Number5].loadFromFile("../assets/images/G_BeeHive_Number5.png") ||
+                !this->images[ImageID::G_Number6].loadFromFile("../assets/images/G_BeeHive_Number6.png") ||
+                !this->images[ImageID::G_Flag].loadFromFile("../assets/images/G_BeeHive_Flag.png") || 
+                !this->images[ImageID::G_Bomb].loadFromFile("../assets/images/G_BeeHive_Bomb.png") ||
+                !this->images[ImageID::G_Question].loadFromFile("../assets/images/G_BeeHive_Question.png") ||
+                !this->images[ImageID::G_Dead].loadFromFile("../assets/images/G_Basic_Dead.png") || // từ chỗ này xuoogns sài ké Basic
+                !this->images[ImageID::G_Wrong].loadFromFile("../assets/images/G_Basic_Wrong.png") ||
+                !this->images[ImageID::G_Panel].loadFromFile("../assets/images/G_Basic_Panel.png")
+            ) {std::cerr<<"Error: load image CoreGame\n"; return false;}
             break;
         }
     }

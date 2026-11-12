@@ -61,6 +61,7 @@ void Board::Generate(const CellPoint& cellPoint)
         // mở ô đầu tiên
         this->cells[cellPoint.y*this->cols+cellPoint.x].OpenCell();
         FloodFill(cellPoint);
+        this->countClickTB++;
 
         // ngay click đầu tiên mà win thì làm lại bàn mới
         if (IsWon())
@@ -217,9 +218,12 @@ OpenResult Board::OpenAt(const CellPoint& cellPoint)
     // ô mở là mìn
     if (cell->CheckIsMine())
     {
+        // đc tha mạng
+        if (this->onHitMineValidator && this->onHitMineValidator(cellPoint))
+        { return OpenResult::Safe;}
+        // im dead
         this->ended = true;
         this->losed = true;
-
         AddCellPointDead(cellPoint);
         return OpenResult::Lose;
     }
@@ -370,7 +374,7 @@ bool Board::Load(std::istream& input, float& time)
     { std::cout<<"vitri1"; return false; }
 
     // kiểm tra dữ liệu
-    if (rows != this->rows || cols != this->cols || mineCount != this->mineCount || timeSave<0 || countClick <0 || countClick > countClickTB || countClickTB <0 || countClickTB>this->cols*this->rows-this->mineCount)
+    if (rows != this->rows || cols != this->cols || mineCount != this->mineCount || timeSave<0 || countClick <0 || countClickTB <0 )
     { std::cout<<"vitri2"; return false; }
 
     auto isBool = [](int v) { return v == 0 || v == 1; }; // lambda
@@ -420,7 +424,7 @@ bool Board::Load(std::istream& input, float& time)
     int mines = 0;
     for (const Cell& cell : loaded1){ if (cell.CheckIsMine()) mines ++; }
 
-    if (generated && mines != this->mineCount)
+    if (generated && mines > this->mineCount) // bee hive có 1 mạng nữa nên trừ đi 1 quả mìn
     { std::cout<<"vitri6"; return false; }
     
     if (!generated && mines != 0)
@@ -448,6 +452,8 @@ bool Board::Load(std::istream& input, float& time)
     this->generated = generated;
     this->ended = ended;
     this->losed = losed;
+    this->countClick = countClick;
+    this->countClickTB = countClickTB;
     time = timeSave;
 
     return true;
@@ -510,4 +516,29 @@ void Board::Save(std::ostream& output, float time) const
     {
         output << point.x << " " << point.y << "\n";
     }
+}
+
+int Board::GetMineCount() const
+{
+    int count = 0;
+    for (const Cell& cell : this->cells)
+    { if (cell.CheckIsMine()) count++; }
+    return count;
+}
+
+int Board::GetFlaggedCount() const
+{
+    int count = 0;
+    for (const Cell& cell : this->cells)
+    { if (cell.GetState() == CellState::Flagged) count++; }
+    return count;
+}
+
+
+bool Board::IsWon() const
+{
+    int count =0;
+    for (const Cell& cell: this->cells)
+    { if (cell.GetState() != CellState::Openned) count++; }
+    return (count == this->mineCount);
 }

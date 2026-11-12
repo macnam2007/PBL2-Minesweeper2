@@ -27,4 +27,5 @@ class GameMode
         virtual void Reset() {};
         virtual bool Load(std::istream& input) { return true;};
         virtual void Save(std::ostream& output) const {};
+        virtual bool OnHitMine(CellPoint cellPoint) { return false; }
 };

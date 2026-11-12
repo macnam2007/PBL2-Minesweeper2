@@ -26,54 +26,50 @@ std::vector<CellPoint> SquareBoard::GetNeighbors(const CellPoint& cellPoint)
     return res;
 }
 
-sf::Vector2f SquareBoard::CellToPixel(const CellPoint& cellPoint) const
-{ return this->pointDraw + sf::Vector2f(cellPoint.x*this->sizeCell,cellPoint.y*this->sizeCell); }
+sf::Vector2f SquareBoard::CellToPixel(const CellPoint& point) const
+{
+    float totalWidth = this->cols * this->sizeCell;
+    float totalHeight = this->rows * this->sizeCell;
+
+    float topLeftX = this->pointDraw.x - (totalWidth / 2.0f);
+    float topLeftY = this->pointDraw.y - (totalHeight / 2.0f);
+
+    float pixelX = point.x * this->sizeCell;
+    float pixelY = point.y * this->sizeCell;
+    
+    return sf::Vector2f(
+        topLeftX + pixelX + (this->sizeCell / 2.0f),
+        topLeftY + pixelY + (this->sizeCell / 2.0f)
+    );
+} 
 
 // optional có thể trả về 1 giá trị có thể null giống như con trỏ 
 std::optional<CellPoint> SquareBoard::MouseToCell(const sf::Vector2f& mousePoint) const
 {
-    float mouseX = mousePoint.x;
-    float mouseY = mousePoint.y;
-    // kiểm tra xem có nằm trong vùng bảng không
-    if (
-        ( this->pointDraw.x < mouseX && mouseX < this->pointDraw.x+this->sizeCell*this->cols ) &&
-        ( this->pointDraw.y < mouseY && mouseY < this->pointDraw.y+this->sizeCell*this->rows )
-    )
+    // khoảng cách từ Tâm đến góc Trên Trái bảng
+    float totalWidth = this->cols * this->sizeCell;
+    float totalHeight = this->rows * this->sizeCell;
+
+    // tọa độ góc Trên Trái
+    float topLeftX = this->pointDraw.x - (totalWidth / 2.0f);
+    float topLeftY = this->pointDraw.y - (totalHeight / 2.0f);
+
+    // quy về gốc 0 0 để tính toán
+    float localX = mousePoint.x - topLeftX;
+    float localY = mousePoint.y - topLeftY;
+
+    //  Suy ra tọa độ ô
+    int x = static_cast<int>(localX / this->sizeCell);
+    int y = static_cast<int>(localY / this->sizeCell);
+
+    // lọc
+    if (localX >= 0 && localY >= 0 && x >= 0 && x < this->cols && y >= 0 && y < this->rows)
     {
-        // điều chỉnh cho gốc về (0,0)
-        mouseX -= this->pointDraw.x;
-        mouseY -= this->pointDraw.y;
-    
-        return CellPoint(mouseX/this->sizeCell,mouseY/this->sizeCell);
-
+        return CellPoint(x, y);
     }
-    else return std::nullopt;
+    
+    return std::nullopt;
 }
-
-int SquareBoard::GetMineCount() const
-{
-    int count = 0;
-    for (const Cell& cell : this->cells)
-    { if (cell.CheckIsMine()) count++; }
-    return count;
-}
-
-int SquareBoard::GetFlaggedCount() const
-{
-    int count = 0;
-    for (const Cell& cell : this->cells)
-    { if (cell.GetState() == CellState::Flagged) count++; }
-    return count;
-}
-
 
 float SquareBoard::GetSizeCell() const
 { return this->sizeCell; }
-
-bool SquareBoard::IsWon() const
-{
-    int count =0;
-    for (const Cell& cell: this->cells)
-    { if (cell.GetState() != CellState::Openned) count++; }
-    return (count == this->mineCount);
-}
