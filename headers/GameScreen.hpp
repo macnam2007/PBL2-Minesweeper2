@@ -3,6 +3,7 @@
 #include "Game.hpp"
 #include "OverlayScreen.hpp"
 #include "SFML/Graphics/RenderWindow.hpp"
+#include "SFML/Graphics/Sprite.hpp"
 #include "SFML/System/Vector2.hpp"
 #include "Screen.hpp"
 
@@ -12,6 +13,8 @@
 #include "GameMode.hpp"
 #include "Panel.hpp"
 #include "../headers/SaveManager.hpp"
+
+#define TIME_SAVE 5
 
 class GameScreen : public Screen
 {
@@ -23,6 +26,7 @@ class GameScreen : public Screen
         ModeID modeID;
 
         sf::Sprite spriteBg;
+        sf::Sprite spriteFrame;
 
         OverlayScreen overlay;
         bool overlayOn=false;
@@ -36,8 +40,12 @@ class GameScreen : public Screen
         Panel PanelResult;
 
         std::optional<Record> bestRecord;
-
         std::optional<CellPoint> CellHolding;
+
+        sf::Text textTimer;
+        sf::Text textMineLeft;
+
+        float timeSave=TIME_SAVE;
 
     
     public:
@@ -53,4 +61,6 @@ class GameScreen : public Screen
 
         void RenderGrid(sf::RenderWindow& window) const;
         std::string FormatFloatTime(float time) const;
+        std::string FormatBoardTime(float time) const;
+        std::string FormatBoardMines(int count) const;
 };

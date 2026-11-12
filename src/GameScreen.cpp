@@ -26,16 +26,27 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
         {640.f,140.f}
     ),
     spriteBg(game->GetResources().GetImage(ImageID::G_Bg)),
+    spriteFrame(game->GetResources().GetImage(ImageID::G_Frame)),
     overlay(game,this->overlayOn),
     PanelStat(
         game->GetResources().GetImage(ImageID::G_Panel),
-        game->GetResources().GetFont(),
+        game->GetResources().GetFont(FontID::PressStart2P),
         {47.f,263.f}
     ),
     PanelResult(
         game->GetResources().GetImage(ImageID::G_Panel),
-        game->GetResources().GetFont(),
+        game->GetResources().GetFont(FontID::PressStart2P),
         {903.f,263.f}
+    ),
+    textTimer(
+        game->GetResources().GetFont(FontID::DigitalNumber),
+        "00:00",
+        26 
+    ),
+    textMineLeft(
+        game->GetResources().GetFont(FontID::DigitalNumber), 
+        "00", 
+        26
     )
 {
     // Thêm nút vào danh sách quản lý
@@ -65,8 +76,29 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
             this->board->ResetBoard();
         }
     );
-    // Đặt vị trí của ảnh (Gốc của ảnh: góc trên bên trái)
+    // Đặt vị trí của ảnh nền (Gốc của ảnh: góc trên bên trái)
     this->spriteBg.setPosition({0.f,0.f});
+
+    // Đặt vị trí thông tin thời gian , số mìn còn lại
+    // Text hiển thị Đồng hồ
+    this->textTimer.setFillColor(sf::Color::Black);
+    // dời gốc ảnh về tâm
+    sf::FloatRect bounds = this->textTimer.getLocalBounds();
+    this->textTimer.setOrigin({
+        bounds.position.x + bounds.size.x / 2.0f, 
+        bounds.position.y + bounds.size.y / 2.0f
+    });
+    this->textTimer.setPosition({493.f, 140.f});
+
+    // Text hiển thị số mìn còn lại
+    this->textMineLeft.setFillColor(sf::Color::Black);
+    // dời gốc ảnh về tâm
+    bounds = this->textMineLeft.getLocalBounds(); 
+    this->textMineLeft.setOrigin({
+        bounds.position.x + bounds.size.x / 2.0f, 
+        bounds.position.y + bounds.size.y / 2.0f
+    });
+    this->textMineLeft.setPosition({787.f, 140.f});
 
     // tạo dữ bàn chơi và quy luật
     CreateBoard();
@@ -75,6 +107,10 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
     // đọc file;
     float time;
     int mapid = static_cast<int>(mapID), modeid = static_cast<int>(modeID);
+
+
+    // đọc thông tin đã lưu nếu có (đọc trước vì Panel của bestRecord cần biết là đã từng có kỉ lục hay chưa)
+    this->bestRecord = SaveManager::GetRecord(mapid, modeid);
 
     if (SaveManager::LoadGame(*this->board, *this->mode, mapid, modeid, time))
     {
@@ -132,9 +168,6 @@ GameScreen::GameScreen(Game* game, MapID mapID, ModeID modeID)
         this->timer.Reset();
     }
 
-    // đọc thông tin đã lưu nếu có
-    this->bestRecord = SaveManager::GetRecord(mapid, modeid);
-
     // Thêm thông tin vào PanelStat
     this->PanelStat.SetTitle("STAT");
     std::vector<std::string> texts = {
@@ -174,6 +207,14 @@ void GameScreen::Render(sf::RenderWindow& window)
 {
     // vẽ nền
     window.draw(this->spriteBg);
+    // vẽ thời gian
+    this->spriteFrame.setPosition({418.f,110.f});
+    window.draw(this->spriteFrame);
+    window.draw(this->textTimer);
+    // vẽ số mìn còn lại
+    this->spriteFrame.setPosition({697.f,110.f});
+    window.draw(this->spriteFrame);
+    window.draw(this->textMineLeft);
     // vẽ bảng trò chơi
     RenderGrid(window);
     // vẽ đè lên của các GameMode
@@ -235,8 +276,8 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint, fl
                                 this->game->GetResources().GetImage(ImageID::G_BtnResetWon)
                             );
                             this->PanelResult.SetTitle("YOU WON");
-                            float A = float(this->board->GetCountClickTB())/this->board->GetCountClick();
-                            float B = float(this->board->GetCountClickTB())/this->timer.GetTime();
+                            float A = float(this->board->GetCountClickTB())/(this->board->GetCountClick()); // kiểu j cũng > 1 :))) thiết lập cả rồi
+                            float B = float(this->board->GetCountClickTB())/(this->timer.GetTime()==0?1:this->timer.GetTime()); // lở chơi win với tốc độ siêu thành
                             int score = A*B*1000;
                             score = score<0?0:score;
 
@@ -254,8 +295,11 @@ void GameScreen::HandleEvent(const sf::Event& event, sf::Vector2f mousePoint, fl
                             this->PanelResult.SetLines(texts);
 
                             // lưu kỉ lục mới nếu có
-                            if (score > this->bestRecord->score || (score == this->bestRecord->score && this->timer.GetTime() < this->bestRecord->time))
-                            { SaveManager::UpdateRecord(static_cast<int>(this->mapID), static_cast<int>(this->modeID), score, this->timer.GetTime()); }
+                            if (this->bestRecord)
+                            {
+                                if (score > this->bestRecord->score || (score == this->bestRecord->score && this->timer.GetTime() < this->bestRecord->time))
+                                { SaveManager::UpdateRecord(static_cast<int>(this->mapID), static_cast<int>(this->modeID), score, this->timer.GetTime()); }
+                            }
                             break;
                         }
                         case OpenResult::Lose:
@@ -323,8 +367,12 @@ void GameScreen::Update(float deltaTime,sf::Vector2f mousePoint)
     else
     {
         // sau 5s lưu file 1 lần
-        if (int(this->timer.GetTime())%5 == 0)
-        { SaveManager::SaveGame(this->board.get(), this->mode.get(), static_cast<int>(this->mapID), static_cast<int>(this->modeID), this->timer.GetTime()); }
+        this->timeSave -= deltaTime;
+        if (this->timeSave<0)
+        {
+            this->timeSave = TIME_SAVE;
+            SaveManager::SaveGame(this->board.get(), this->mode.get(), static_cast<int>(this->mapID), static_cast<int>(this->modeID), this->timer.GetTime());
+        }
 
         // Mode thực hiện sự kiện theo thời gian
         this->mode->OnTick(deltaTime);
@@ -336,6 +384,30 @@ void GameScreen::Update(float deltaTime,sf::Vector2f mousePoint)
             if (!this->mode->NeedHold(*this->CellHolding))
             { this->CellHolding = std::nullopt; }
         }
+
+        // Cập nhật thời gian
+        this->textTimer.setString(FormatBoardTime(this->timer.GetTime()));
+        // Cập nhật số mìn còn lại 
+        int flagCount = 0;
+        for (int y = 0; y < this->board->GetRows(); y++) {
+            for (int x = 0; x < this->board->GetCols(); x++) {
+                if (this->board->GetCell(CellPoint(x,y))->GetState() == CellState::Flagged)
+                { flagCount++; }
+            }
+        }
+        int minesLeft = this->board->GetMineCount() - flagCount;
+        this->textMineLeft.setString(FormatBoardMines(minesLeft));
+        // cập nhật lại vị trí tâm
+        sf::FloatRect bounds = this->textTimer.getLocalBounds();
+        this->textTimer.setOrigin({
+            bounds.position.x + bounds.size.x / 2.0f, 
+            bounds.position.y + bounds.size.y / 2.0f
+        });
+        bounds = this->textMineLeft.getLocalBounds();
+        this->textMineLeft.setOrigin({
+            bounds.position.x + bounds.size.x / 2.0f, 
+            bounds.position.y + bounds.size.y / 2.0f
+        });
         
         Screen::Update(deltaTime,mousePoint);
 
@@ -494,5 +566,26 @@ std::string GameScreen::FormatFloatTime(float time) const
 {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(4) << time;
+    return ss.str();
+}
+
+std::string GameScreen::FormatBoardTime(float time) const
+{
+    int minutes = static_cast<int>(time) / 60; // Lấy số phút
+    int seconds = static_cast<int>(time) % 60; // Lấy số giây lẻ
+    
+    std::stringstream ss;
+    ss << std::setfill('0') << std::setw(2) << minutes << ":" 
+       << std::setfill('0') << std::setw(2) << seconds;
+    return ss.str();
+}
+
+std::string GameScreen::FormatBoardMines(int count) const
+{
+    std::stringstream ss;
+    if (count < 0)
+    { ss << "-" << std::setfill('0') << std::setw(2) << -count; }
+    else
+    { ss << std::setfill('0') << std::setw(2) << count; }
     return ss.str();
 }

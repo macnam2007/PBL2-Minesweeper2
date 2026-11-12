@@ -15,9 +15,9 @@ class ResourceManager
 
         std::map<ImageID, sf::Texture> images;
         std::map<SoundID, sf::SoundBuffer> soundBuffers;
+        std::map<FontID,sf::Font> fonts;
         std::vector<sf::Sound> playingSounds; // giúp nhiều âm thanh hoạt động cùng lúc
         sf::Music music;
-        sf::Font font;
 
         bool musicOn = true;
         bool soundOn = true;
@@ -28,14 +28,13 @@ class ResourceManager
 
         bool LoadImagesGlobal();
         bool LoadImagesBoard(MapID map);
+        bool LoadFont();
         bool LoadSounds();
         bool LoadMusic();
-        bool LoadFont();
 
         const sf::Texture& GetImage(const ImageID& id) const;
-        const sf::Font& GetFont() const;
+        const sf::Font& GetFont(const FontID& id) const;
 
-        
         void PlayMusic(); // Dùng khi vừa mở game 
         void PlaySound(const SoundID& id);
 

@@ -203,7 +203,7 @@ void Board::ResetBoard()
     SetEnded(false);
     SetLosed(false);
     this->generated = false;
-    this->cellPointDead.clear(); // xóa các ô chứa mìn đẳm ở ván trước
+    this->cellPointDead.clear();
     this->countClickTB = 0;
     this->countClick = 0;
 }
@@ -448,6 +448,7 @@ bool Board::Load(std::istream& input, float& time)
     this->generated = generated;
     this->ended = ended;
     this->losed = losed;
+    time = timeSave;
 
     return true;
 }

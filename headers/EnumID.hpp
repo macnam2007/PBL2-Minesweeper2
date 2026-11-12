@@ -52,6 +52,7 @@ enum class ImageID {
     // Trang Game <Các nút hiện không có effect>
     G_Bg,
     G_BtnPause,
+    G_Frame,
     /* VÙNG LÕI GAME (Core Gameplay) */
     G_Number0, // điểm gốc để load lúc vẽ
     G_Number1,
@@ -78,7 +79,6 @@ enum class ImageID {
     G_Sand,
     /* VÙNG CỦA MOD RỪNG RẬM (Ghi đè lên lõi game)*/
     G_Root,
-
 };
 
 enum class MapID {
@@ -93,4 +93,9 @@ enum class ModeID {
     Normal,
     Hard,
     Explore
+};
+
+enum class FontID {
+    DigitalNumber,
+    PressStart2P,
 };

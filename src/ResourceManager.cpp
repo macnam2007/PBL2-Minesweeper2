@@ -65,8 +65,9 @@ bool ResourceManager::LoadImagesBoard(MapID map)
         !this->images[ImageID::G_BtnResetLosed].loadFromFile("../assets/images/G_Basic_BtnResetLosed.png") ||
         !this->images[ImageID::G_BtnResetNormal].loadFromFile("../assets/images/G_Basic_BtnResetNormal.png") ||
         !this->images[ImageID::G_BtnResetWon].loadFromFile("../assets/images/G_Basic_BtnResetWon.png") ||
+        !this->images[ImageID::G_Frame].loadFromFile("../assets/images/G_Basic_Frame.png") ||
         !this->images[ImageID::G_BtnPause].loadFromFile("../assets/images/G_Basic_BtnPause.png")
-    ) {std::cerr<<"Error: load image Nút Pause và Nút Reset\n"; return false;}
+    ) {std::cerr<<"Error: load image Nút Pause, Frame và Nút Reset\n"; return false;}
 
     /*Load ảnh riêng*/
     switch(map)
@@ -184,16 +185,18 @@ bool ResourceManager::LoadMusic()
 
 bool ResourceManager::LoadFont()
 {
-    if (!this->font.openFromFile("../assets/fonts/PressStart2P-Regular.ttf"))
-    {std::cerr<<"Error: open Font"; return false;}
+    if (
+        !this->fonts[FontID::PressStart2P].openFromFile("../assets/fonts/PressStart2P-Regular.ttf") ||
+        !this->fonts[FontID::DigitalNumber].openFromFile("../assets/fonts/DigitalNumbers-Regular.ttf")
+    ) {std::cerr<<"Error: open Font"; return false;}
     return true;
 }
 
 const sf::Texture& ResourceManager::GetImage(const ImageID& id) const
 { return this->images.at(id); }
 
-const sf::Font& ResourceManager::GetFont() const
-{ return this->font; }
+const sf::Font& ResourceManager::GetFont(const FontID& id) const
+{ return this->fonts.at(id); }
 
 void ResourceManager::PlaySound(const SoundID& id)
 {
